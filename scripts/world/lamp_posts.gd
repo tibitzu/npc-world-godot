@@ -16,6 +16,7 @@ var lamps: Array[Dictionary] = []  # {pos: Vector3, lit: bool, light: OmniLight3
 var _iron: StandardMaterial3D
 var _glass_off: StandardMaterial3D
 var _glass_on: StandardMaterial3D
+var _blocked: Array = []
 
 
 func _ready() -> void:
@@ -63,11 +64,19 @@ func _ready() -> void:
 		cs.shape = sh
 		cs.position = p + Vector3.UP * HEAD_Y * 0.5
 		body.add_child(cs)
-		holes.append(Rect2(p.x - 0.45, p.z - 0.45, 0.9, 0.9))
+		holes.append(Rect2(p.x - 0.5, p.z - 0.5, 1.0, 1.0))
 		lamps.append({"pos": p, "lit": false, "light": light, "glass": glass})
+	_blocked = holes
+	add_to_group("nav_blockers")
 	var nav := get_tree().get_first_node_in_group("world_nav") as WorldNav
 	if nav:
 		nav.carve_many(holes)
+
+
+## The areas (world x, z) cut out of the walkable ground; buildings leave them out of their own
+## navigation meshes too, where they overlap.
+func blocker_rects() -> Array:
+	return _blocked
 
 
 func _cyl(top: float, bottom: float, h: float) -> CylinderMesh:

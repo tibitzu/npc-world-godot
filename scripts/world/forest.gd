@@ -29,6 +29,7 @@ var _needles_dark: StandardMaterial3D
 var _cut: StandardMaterial3D
 var _log_mesh: CylinderMesh
 var _falling: Array[Dictionary] = []  # {tree, axis, t}
+var _blocked: Array = []
 
 
 func _ready() -> void:
@@ -89,9 +90,17 @@ func _ready() -> void:
 		for i in Hex.tiles_in(Rect2(p.x - 0.4, p.z - 0.4, 0.8, 0.8)):
 			Game.tiles.set_flag(i, TileGrid.F_BLOCK)
 			Game.tiles.set_kind(i, "woods")
+	_blocked = holes
+	add_to_group("nav_blockers")
 	var nav := get_tree().get_first_node_in_group("world_nav") as WorldNav
 	if nav:
 		nav.carve_many(holes)
+
+
+## The areas (world x, z) cut out of the walkable ground; buildings leave them out of their own
+## navigation meshes too, where they overlap.
+func blocker_rects() -> Array:
+	return _blocked
 
 
 func _mat(hex: int) -> StandardMaterial3D:

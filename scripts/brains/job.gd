@@ -128,7 +128,7 @@ func waiting(delta: float) -> bool:
 
 func say(lines: Array, chance := 1.0) -> void:
 	if not lines.is_empty() and randf() < chance and Game.world_time > r.next_speak:
-		r.say(lines[randi() % lines.size()])
+		r.say(r.pick_fresh(lines))
 
 
 ## A building by its node name (e.g. "Store").

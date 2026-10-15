@@ -10,6 +10,8 @@ extends RefCounted
 ##   at the general store's till       mind the shop (or stop)
 ##   by a street lamp                  light it, or put it out
 ##   by a standing tree                fell it (it takes a few seconds)
+##   at the well                       have a drink
+##   in front of an oven               have a meal
 ##
 ## find() returns {label, run} for the first that applies, or an empty dictionary.
 
@@ -71,6 +73,22 @@ static func find(r: Resident) -> Dictionary:
 				return {"label": "Put out the lamp" if lit else "Light the lamp", "run": func() -> void:
 					r.start_action("light", "pole", 1.0 if lit else 1.6, lp, func() -> void:
 						lamps.set_lit(i, not lit))}
+	# the well
+	var well := tree.get_first_node_in_group("well") as Well
+	if well and _close(here, well.position, Well.RING_R + 1.0) and r.needs.thirst < 97.0:
+		return {"label": "Have a drink", "run": func() -> void:
+			r.start_action("", "", 2.5, well.position, func() -> void:
+				r.needs.thirst = 100.0
+				r.cheer(4.0))}
+	# an oven
+	if r.needs.hunger < 97.0:
+		for b in tree.get_nodes_in_group("buildings"):
+			for o in Resident.ovens_in(b):
+				if _close(here, Resident.oven_front(o), 1.0):
+					return {"label": "Have a meal", "run": func() -> void:
+						r.start_action("", "", 4.0, o.global_position, func() -> void:
+							r.needs.hunger = 100.0
+							r.cheer(6.0))}
 	# a tree
 	if forest:
 		var near := forest.standing_near(here, 1.6)

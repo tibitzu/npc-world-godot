@@ -18,6 +18,12 @@ extends CharacterBody3D
 ## Talk: now and then, on reaching the end of a stroll, they say one of their lines. Meeting another
 ## resident (see Conversations) they stop, face each other, greet and reply.
 ##
+## Needs (as in the HTML game): fatigue, happiness, hunger and thirst, each 0..100 (100 is
+## fine). Awake they tire (faster at work) and sleep restores them; hunger and thirst run down
+## through the day, and when one gets low they go for a drink at the well or a meal by an oven
+## (their own, or the tavern's), dropping their work if it gets very low. Happiness slips
+## slowly and comes back with company, food and drink. Worn out, they'll nap.
+##
 ## Work: a resident with a job (def.job, see scripts/brains) does it in their working hours; the
 ## job walks them about, sets their pose (chopping, carrying, reaching up with a pole) and what they
 ## carry (their pack, and set_held for a tool). Off duty they stroll as before, and now and then drop into the general store
@@ -37,6 +43,16 @@ const SAY_MIN := 2.8               # real seconds a line stays over their head, 
 const SAY_PER_CHAR := 0.07         # ...or 1.2 s plus this per letter, for longer ones
 const MUSE_CHANCE := 0.45          # chance of saying a line at the end of a stroll
 const PACK_CAP := {"logs": 3, "parcels": 2}
+const NEED_LOW := 35.0             # off for a drink or a meal below this
+const NEED_URGENT := 15.0          # ...dropping their work below this
+## How fast needs run down (points per game second): a day is 120 s; a night's sleep restores 100.
+const DRAIN := {"fatigue": 100.0 / 480.0, "hunger": 100.0 / 360.0, "thirst": 100.0 / 240.0, "happiness": 100.0 / 480.0}
+const ASLEEP_DRAIN := 0.35         # hunger and thirst run down slower in bed
+const REST := 100.0 / 40.0
+const THIRSTY := ["Thirsty work. To the well!", "My throat's dry as dust.", "Water. Now."]
+const HUNGRY := ["My stomach's growling.", "Time for a bite.", "Something smells good. Probably my imagination."]
+const DRANK := ["Ah, that's better.", "Cold and clear.", "Lovely drop of water."]
+const ATE := ["Mm, still warm.", "That hit the spot.", "Fed and happy."]
 const ROUTINE_CHECK := 2.0         # how often (game seconds) a resident looks for a bed if none was free
 const STEP_UP := 0.35              # the highest step they walk up without noticing (m)
 const FLOOR_MASK := 1              # the "world" layer: floors, stairs, walls, furniture
@@ -82,6 +98,14 @@ var _action_done := Callable()
 var _action_at := Vector3.ZERO
 var _face_pos := Vector3.INF       # a spot to turn and face while standing (set each frame by a job)
 var _bed_line_said := false         # tonight's goodnight has been said
+## Their needs, 0..100 each (see above).
+var needs := {"fatigue": 100.0, "happiness": 100.0, "hunger": 100.0, "thirst": 100.0}
+var _errand := ""                  # "drink" or "eat" while off to see to a need
+var _errand_spot := Vector3.ZERO
+var _errand_face := Vector3.ZERO
+var _errand_tries := 0
+var _napping := false
+var _last_said := ""
 ## Game time (Game.world_time) before which they won't pipe up on their own again.
 var next_speak := 0.0
 var _wp := 0                       # which point of it they're heading for
@@ -118,6 +142,8 @@ func _ready() -> void:
 	tag.modulate = Look.html_colour(def.colour).lightened(0.35)
 	_animate(0.0)
 	job = Job.make(self)
+	for k in needs:
+		needs[k] = randf_range(55.0, 100.0)    # so they don't all get thirsty at once
 	agent.path_changed.connect(func() -> void:
 		_path = agent.get_current_navigation_path()
 		_wp = 0)
@@ -187,6 +213,7 @@ func say(text: String) -> void:
 	_say.visible = true
 	_say_left = maxf(SAY_MIN, 1.2 + text.length() * SAY_PER_CHAR)
 	_talk_left = minf(_say_left - 0.6, 0.5 + text.length() * 0.045)
+	_last_said = text
 	next_speak = Game.world_time + 6.0 + randf() * 6.0
 	spoke.emit(text)
 
@@ -199,7 +226,7 @@ func say_later(text: String, delay: float) -> void:
 
 ## Is anything on their mind? Played, mid-sentence, waiting to speak, busy with bed, or at work.
 func is_busy() -> bool:
-	return controlled or _say_left > 0.0 or not _queued.is_empty() or bed != null or _lying or _lie > 0.0 or _job_active
+	return controlled or _say_left > 0.0 or not _queued.is_empty() or bed != null or _lying or _lie > 0.0 or _job_active or _errand != ""
 
 
 ## Turn to face a spot while standing still (a job calls this each frame it wants it).
@@ -369,6 +396,8 @@ func status() -> String:
 		return "Asleep" if sleep_time() else "In bed"
 	if bed:
 		return "Heading home" if Hex.distance(position, bed.stand_point()) > 12.0 else "Going to bed"
+	if _errand != "":
+		return "Getting a drink" if _errand == "drink" else "Having a meal"
 	if _job_active and job:
 		return job.label()
 	if moving:
@@ -414,6 +443,7 @@ func _retarget() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_drain_needs(delta)
 	if _say_left > 0.0:
 		_say_left -= Game.real_delta(delta)
 		_say.visible = _say_left > 0.0 and tag.visible
@@ -439,8 +469,13 @@ func _physics_process(delta: float) -> void:
 				_end_action(true)
 	_job_active = false
 	if not controlled:
-		_job_active = _job_step(delta)
-		if not _job_active:
+		# an errand under way is finished first; a very urgent need takes them off work
+		var urgent: bool = needs.thirst < NEED_URGENT or needs.hunger < NEED_URGENT
+		if (urgent or _errand != "") and job and job.working:
+			job.finish()
+		if not urgent and _errand == "":
+			_job_active = _job_step(delta)
+		if not _job_active and not _need_step(delta):
 			_autonomy(delta)
 	var want := Vector2.ZERO
 	var speed := PLAYED_SPEED * (RUN_FACTOR if running else 1.0) if controlled else (work_speed if work_speed > 0.0 else def.speed)
@@ -554,7 +589,7 @@ func _arrive() -> void:
 				_face = ShopJob.player_keeper
 				say(_pick(PackedStringArray(ShopJob.SHOPPING)))
 		if bed == null and randf() < MUSE_CHANCE and Game.world_time > next_speak and not is_busy():
-			say(_pick(def.lines))
+			say(pick_fresh(Array(def.lines)))
 	arrived.emit()
 
 
@@ -612,6 +647,125 @@ func _job_step(delta: float) -> bool:
 	return job.tick(delta)
 
 
+## Cheer up (talking, eating, drinking).
+func cheer(points: float) -> void:
+	needs.happiness = minf(100.0, needs.happiness + points)
+
+
+func _drain_needs(delta: float) -> void:
+	if _lying and _lie >= 1.0:
+		needs.fatigue = minf(100.0, needs.fatigue + REST * delta)
+	else:
+		needs.fatigue = maxf(0.0, needs.fatigue - DRAIN.fatigue * delta * (1.5 if _job_active else 1.0))
+	var asleep := _lying and _lie >= 1.0
+	for k in ["hunger", "thirst", "happiness"]:
+		needs[k] = maxf(0.0, needs[k] - DRAIN[k] * delta * (ASLEEP_DRAIN if asleep and k != "happiness" else 1.0))
+
+
+# off for a drink or a meal when one runs low; true while seeing to it
+func _need_step(_delta: float) -> bool:
+	if bed != null or _lying or _lie > 0.0:
+		_errand = ""
+		return false
+	if _action_left > 0.0:
+		return true                              # drinking or eating
+	if _errand == "":
+		if _bedtime_soon():
+			return false
+		if needs.thirst < NEED_LOW:
+			# the well, or a cup of water at home if that's nearer
+			var well := get_tree().get_first_node_in_group("well") as Well
+			var home := _nearest_oven(false)
+			if well == null and home == null:
+				return false
+			_errand = "drink"
+			if well and (home == null or Hex.distance(position, well.position) < Hex.distance(position, home.global_position)):
+				_errand_spot = well.stand_point(position)
+				_errand_face = well.position
+			else:
+				_errand_spot = oven_front(home)
+				_errand_face = home.global_position
+			say(_pick(PackedStringArray(THIRSTY)))
+		elif needs.hunger < NEED_LOW:
+			var oven := _nearest_oven()
+			if oven == null:
+				return false
+			_errand = "eat"
+			_errand_spot = oven_front(oven)
+			_errand_face = oven.global_position
+			say(_pick(PackedStringArray(HUNGRY)))
+		else:
+			return false
+		_errand_tries = 0
+		_set_goal(_snap(_errand_spot))
+		return true
+	if Hex.distance(position, _errand_spot) < 0.7 and absf(position.y - _errand_spot.y) < 0.6:
+		var kind := _errand
+		start_action("", "", 2.5 if kind == "drink" else 4.0, _errand_face, func() -> void:
+			if kind == "drink":
+				needs.thirst = 100.0
+				cheer(4.0)
+				say(_pick(PackedStringArray(DRANK)))
+			else:
+				needs.hunger = 100.0
+				cheer(6.0)
+				say(_pick(PackedStringArray(ATE)))
+			_errand = "")
+		return true
+	if _goal == null:
+		_errand_tries += 1
+		if _errand_tries > 3:
+			# can't get there: give up for now (and don't try again straight away)
+			needs[("thirst" if _errand == "drink" else "hunger")] += 20.0
+			_errand = ""
+			return false
+		_set_goal(_snap(_errand_spot))
+	return true
+
+
+func _snap(p: Vector3) -> Vector3:
+	var map := get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(map) == 0:
+		return p
+	return NavigationServer3D.map_get_closest_point(map, p)
+
+
+## Where to stand to eat by an oven: in front of its mouth.
+static func oven_front(oven: Node3D) -> Vector3:
+	var f := oven.global_transform.basis.z
+	f.y = 0.0
+	return oven.global_position + f.normalized() * 1.15
+
+
+## The ovens in a building (the oven itself, not its collider).
+static func ovens_in(b: Node) -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for n in b.find_children("Oven", "Node3D", true, false):
+		if not (n is CollisionShape3D):
+			out.append(n)
+	return out
+
+
+# their own home's oven or (if tavern) the tavern's, whichever is nearer
+func _nearest_oven(tavern := true) -> Node3D:
+	var best: Node3D = null
+	var bd := INF
+	for b in get_tree().get_nodes_in_group("buildings"):
+		var bld := b as Building
+		var mine := false
+		for bd_ in bld.beds:
+			if bd_.owner_id == def.id:
+				mine = true
+		if not mine and not (tavern and bld.name == "Tavern"):
+			continue
+		for o in ovens_in(bld):
+			var d := Hex.distance(position, o.global_position)
+			if d < bd:
+				bd = d
+				best = o
+	return best
+
+
 # Set off home in time to be in bed by bedtime: true from when the walk to their bed would take
 # all the time left (or once they're on their way, or already in bed early).
 func _bedtime_soon() -> bool:
@@ -629,7 +783,12 @@ func _bedtime_soon() -> bool:
 
 # bedtime and morning, for a resident nobody is playing
 func _routine(delta: float) -> void:
-	var night := sleep_time() or _bedtime_soon()
+	# worn out: a nap, whatever the time, until they're rested
+	if needs.fatigue < 12.0 and not _napping:
+		_napping = true
+	elif _napping and needs.fatigue >= 99.0:
+		_napping = false
+	var night := sleep_time() or _bedtime_soon() or _napping
 	if night:
 		if bed != null:
 			return                              # in bed, or on the way
@@ -671,6 +830,16 @@ func _nearest_free_bed() -> Bed:
 	return best
 
 
+## One of the lines, not the one they said last if there's a choice.
+func pick_fresh(lines: Array) -> String:
+	if lines.is_empty():
+		return ""
+	var options := lines.filter(func(l: String) -> bool: return l != _last_said)
+	if options.is_empty():
+		options = lines
+	return options[randi() % options.size()]
+
+
 static func _pick(lines: PackedStringArray) -> String:
 	return lines[randi() % lines.size()] if lines.size() > 0 else ""
 
@@ -696,7 +865,8 @@ func _autonomy(delta: float) -> void:
 		_visiting = true
 		return
 	var square := get_tree().get_first_node_in_group("town_square") as TownSquare
-	if square and randf() < def.town_visits:
+	# glum residents go looking for company more often
+	if square and randf() < def.town_visits * (1.0 + (1.0 - needs.happiness / 100.0)):
 		var spot := square.random_spot()
 		_set_goal(Vector3(Hex.near_copy_x(spot.x, position.x), 0.0, Hex.near_copy_z(spot.z, position.z)))
 		_visiting = true

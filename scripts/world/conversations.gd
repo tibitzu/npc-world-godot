@@ -86,6 +86,8 @@ func _meet(speaker: Resident, listener: Resident) -> void:
 	listener.stop_to_talk(speaker, PAUSE)
 	speaker.say(fill(Resident._pick(speaker.def.greet_lines), listener))
 	listener.say_later(Resident._pick(listener.def.reply_lines), REPLY_AFTER)
+	speaker.cheer(10.0)
+	listener.cheer(10.0)
 
 
 ## A player made their resident say something: everyone nearby who's free turns and answers.
@@ -100,6 +102,8 @@ func player_spoke(r: Resident, text: String) -> void:
 			continue
 		other.stop_to_talk(r, 3.0 + k * 0.9)
 		other.say_later(Resident._pick(other.def.answer_lines if question else other.def.reply_lines), 1.0 + k * 0.9)
+		other.cheer(8.0)
+		r.cheer(4.0)
 		k += 1
 
 

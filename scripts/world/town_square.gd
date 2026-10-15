@@ -30,4 +30,8 @@ func _ready() -> void:
 ## A random spot on the square, toward the middle (where residents come to meet).
 func random_spot() -> Vector3:
 	var h := size * 0.3
-	return Vector3(centre.x + randf_range(-h, h), 0.0, centre.y + randf_range(-h, h))
+	for attempt in 8:
+		var p := Vector3(centre.x + randf_range(-h, h), 0.0, centre.y + randf_range(-h, h))
+		if Vector2(p.x - centre.x, p.z - centre.y).length() > 1.8:     # not in the well
+			return p
+	return Vector3(centre.x + h, 0.0, centre.y)

@@ -173,6 +173,17 @@ func _bake_nav() -> void:
 		v[k + 1] = q.y
 		v[k + 2] = q.z
 	data.set_vertices(v)
+	# things placed in the world over this building's area (trees, lamp posts, the well) are left out
+	var here := nav_rect()
+	for n in get_tree().get_nodes_in_group("nav_blockers"):
+		for rect in n.blocker_rects():
+			var hole := (rect as Rect2).intersection(here.grow(WorldNav.BORDER))
+			if hole.has_area():
+				var o := Vector2(position.x, position.z)
+				var a := hole.position - o
+				var b := hole.end - o
+				data.add_projected_obstruction(PackedVector3Array([Vector3(a.x, 0, a.y), Vector3(b.x, 0, a.y),
+					Vector3(b.x, 0, b.y), Vector3(a.x, 0, b.y)]), -1.0, 12.0, true)
 	NavigationServer3D.bake_from_source_geometry_data(nm, data)
 	nav.navigation_mesh = nm
 	nav.rotation.y = -rotation.y

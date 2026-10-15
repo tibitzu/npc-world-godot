@@ -225,6 +225,23 @@ func _build_roster() -> void:
 				_player.let_go()
 			else:
 				_player.possess(res))
+		# the needs bars along the bottom of the card
+		for st in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+			var sb := b.get_theme_stylebox(st).duplicate() as StyleBox
+			if sb:
+				sb.content_margin_bottom = sb.content_margin_bottom + 12.0 if sb.content_margin_bottom >= 0.0 else 16.0
+				b.add_theme_stylebox_override(st, sb)
+		var bars := NeedBars.new()
+		bars.resident = res
+		bars.anchor_left = 0.0
+		bars.anchor_right = 1.0
+		bars.anchor_top = 1.0
+		bars.anchor_bottom = 1.0
+		bars.offset_left = 10.0
+		bars.offset_right = -10.0
+		bars.offset_top = -12.0
+		bars.offset_bottom = -6.0
+		b.add_child(bars)
 		_roster.add_child(b)
 		_cards[res] = b
 		res.spoke.connect(func(text: String) -> void: _on_spoke(res, text))

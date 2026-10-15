@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 11, looks
+## Where it's up to: milestone 12, needs
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -133,6 +133,14 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - The everyday tool goes away while they're using something else (the axe for chopping, the long pole for lighting a lamp), carrying parcels, or in bed.
 - Outfits are in each resident's `.tres` (`hat`, `tool`, `trousers`, `shoes`, `extras`, `plume`); the shapes are in `scripts/actors/gear.gd`.
 
+**Milestone 12, needs**
+- Every resident has four needs, as in the HTML game, shown as bars along the bottom of their card (hover for the numbers): **fatigue** (lilac), **happiness** (gold), **hunger** (orange) and **thirst** (blue). Full is fine; a bar turns red when it's nearly empty.
+  - Fatigue runs down while they're awake (faster at work) and a night's sleep restores it. Worn right out, they'll take a nap whatever the time.
+  - Thirst and hunger run down through the day (slower asleep). When one gets low they go for a drink at the new **well** in the middle of the square (or a cup of water at home, if that's nearer), or a meal by their own oven or the tavern's; if it gets very low they leave work to do it. They say so ("My throat's dry as dust." / "That hit the spot.").
+  - Happiness slips slowly and comes back with company (every chat cheers both up), food and drink. Glum residents go looking for company in the square more often.
+- Playing someone, F at the well has a drink and F in front of an oven has a meal.
+- Fixed on the way: street lamps (and trees) standing inside a building's walkable area were walked straight through; buildings now leave them out of their own navigation meshes (`blocker_rects()` on the Forest, LampPosts and Well).
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -214,6 +222,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 12
+## Next: milestone 13
 
-Needs, from the HTML game: fatigue, hunger, thirst and happiness. Residents tire through the day and sleep it off, eat at home (by their ovens) or at the tavern, drink at a well on the square, and cheer up chatting with each other; each card shows the bars.
+Health and danger, from the HTML game: each resident's health and weapon, monsters that roam the woods at night and now and then raid the town, the guards turning out to meet them, and fighting back when you're playing someone.
