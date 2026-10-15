@@ -13,8 +13,11 @@ uniform float size = 21.0;                    // the plane's side, metres (for t
 uniform float kerb = 0.3;                     // width of the kerb border, metres
 uniform bool road = false;
 uniform float road_width = 2.6;
+uniform float unfinished = 3.5;               // metres at an unfinished road's end where stones are missing
+uniform vec3 sand_colour : source_color = vec3(0.7, 0.6, 0.44);
 
 varying vec2 local;                           // metres from the plane's centre
+varying float left;                           // metres to the end of an unfinished road (10+ elsewhere)
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -28,6 +31,7 @@ float rbox(vec2 p, vec2 b, float r) {
 
 void vertex() {
 	local = road ? vec2((UV.x - 0.5) * road_width, UV.y) : VERTEX.xz;
+	left = road ? COLOR.r * 10.0 : 10.0;
 }
 
 void fragment() {
@@ -58,7 +62,16 @@ void fragment() {
 		col *= 0.88;
 	}
 	float mortar = smoothstep(-0.006, 0.006, d);
-	ALBEDO = mix(col, mortar_colour, mortar);
+	// the unfinished end: stones thin out toward it (the sand bed shows through, from the dirt
+	// track below), and the joints aren't filled yet
+	float gone = clamp(1.0 - left / unfinished, 0.0, 1.0);
+	if (gone > 0.0) {
+		if (hash(cell + 2.9) < pow(gone, 1.4) * 1.05 || (mortar > 0.5 && gone > 0.25)) {
+			discard;
+		}
+	}
+	vec3 joint = mix(mortar_colour, sand_colour * 0.8, smoothstep(0.0, 0.3, gone));
+	ALBEDO = mix(col, joint, mortar);
 	ROUGHNESS = mix(0.85, 1.0, mortar);
 	// each stone is slightly domed: tilt the normal toward its edges
 	vec2 tilt = f / (cell_size * 0.5) * 0.35 * (1.0 - mortar);

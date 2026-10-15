@@ -11,6 +11,8 @@ uniform vec3 grass_colour : source_color = vec3(0.42, 0.56, 0.26);
 uniform vec3 pebble_colour : source_color = vec3(0.6, 0.57, 0.52);
 uniform float road_width = 2.4;
 uniform float rut_gap = 1.3;           // metres between the wheel ruts
+uniform float bed_length = 6.5;        // metres at the start laid as a levelled sand bed (under new cobbles)
+uniform vec3 sand_colour : source_color = vec3(0.7, 0.6, 0.44);
 
 varying vec2 local;                    // metres: x across from the middle, y along
 
@@ -38,7 +40,10 @@ void fragment() {
 	float half_w = road_width * 0.5;
 	// ragged edges: the moss creeps in by up to 0.45 m
 	float ragged = fbm(vec2(p.y * 1.3, sign(p.x) * 5.0)) * 0.45 + fbm(vec2(p.y * 6.0, sign(p.x) * 9.0)) * 0.12;
-	float edge = half_w - abs(p.x) - ragged;
+	// at the start, the levelled sand bed the new cobbles are laid on: straight edged, the full width
+	float bed = 1.0 - smoothstep(bed_length - 1.0, bed_length + 2.5, p.y);
+	ragged *= 1.0 - bed;
+	float edge = half_w - abs(p.x) - ragged - bed * 0.05;
 	if (edge < 0.0) {
 		discard;
 	}
@@ -67,6 +72,13 @@ void fragment() {
 		float r = 0.12 + 0.12 * hash(cell + 9.2);
 		float pb = 1.0 - smoothstep(r - 0.04, r, length(f - c));
 		col = mix(col, pebble_colour * (0.8 + 0.4 * hash(cell + 1.3)), pb);
+	}
+	// the sand bed: raked smooth, the rake's lines running along it, scuffed where it gives way to the track
+	if (bed > 0.0) {
+		float rake = 0.95 + 0.05 * sin(p.x * 70.0 + noise(p * 3.0) * 4.0);
+		vec3 sand = sand_colour * (0.88 + 0.2 * fbm(p * 3.0)) * rake;
+		float scuff = smoothstep(0.3, 0.75, fbm(p * vec2(1.5, 2.5) + 4.0));
+		col = mix(col, sand, bed * (1.0 - 0.45 * scuff * smoothstep(bed_length - 3.0, bed_length, p.y)));
 	}
 	ALBEDO = col;
 	ROUGHNESS = 1.0;

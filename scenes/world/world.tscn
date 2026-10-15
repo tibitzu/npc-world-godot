@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/world/town_square.gd" id="8_square"]
 [ext_resource type="Script" path="res://scripts/world/day_night.gd" id="9_daynight"]
 [ext_resource type="Script" path="res://scripts/world/roads.gd" id="10_roads"]
+[ext_resource type="Script" path="res://scripts/world/roadworks.gd" id="11_works"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -51,6 +52,9 @@ script = ExtResource("8_square")
 
 [node name="WorldNav" type="Node3D" parent="."]
 script = ExtResource("6_nav")
+
+[node name="Roadworks" type="Node3D" parent="."]
+script = ExtResource("11_works")
 
 [node name="Buildings" type="Node3D" parent="."]
 
