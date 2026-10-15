@@ -6,7 +6,7 @@ extends Node3D
 
 @export var bed_name := "Bed"
 ## Length of the mattress (m).
-@export var length := 1.35
+@export var length := 1.9
 ## Height of the top of the mattress above the floor (m).
 @export var mattress_height := 0.4
 
@@ -24,7 +24,7 @@ func is_free_for(r: Resident) -> bool:
 
 ## Where a resident stands to get in or out: on the floor, a little past the foot.
 func stand_point() -> Vector3:
-	var p := global_transform * Vector3(0.0, 0.0, length * 0.5 + 0.32)
+	var p := global_transform * Vector3(0.0, 0.0, length * 0.5 + 0.45)
 	p.y = global_position.y - mattress_height
 	return p
 

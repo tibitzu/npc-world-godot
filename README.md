@@ -20,14 +20,14 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Press **V** to switch between the smooth ground and the hex tiles. The tile under the cursor shows in the top left.
 
 **Milestone 2, one resident**
-- Mira the gardener, built like the HTML game's residents, strolls around her spot by the square on her own, and heads back there if she ends up far away.
+- Mira the gardener, built like the HTML game's residents but 1.5 times the size (about 1.5 m tall, in proportion to the furniture), strolls around her spot by the square on her own, and heads back there if she ends up far away.
 - Click her (or her card at the top right) to take control. The camera blends into her eyes; scroll out or press **T** for the view from behind and above her.
 - Every walk to a destination follows a navigation mesh covering the whole map, so routes are exact (residents stop within a few centimetres of a tile's centre). Routes cross the wrap seam when that way is shorter.
 - Press **P** to draw the route each resident is following.
 - After 30 seconds without input, Mira goes back to her own business (a countdown shows for the last 10).
 
 **Milestone 3, the tavern**
-- The Hex & Lantern stands north of the square: 7 × 5.2 m, twice the HTML game's floor area. Downstairs are the bar, bottle shelves, barrels, fireplace and rug, plus two tables with chairs; a stair up the east wall leads to an upper floor of six guest beds. Every walkway is wide enough for residents to pass easily (all seven of a test crowd reach a bed together in about 15 seconds).
+- The Hex & Lantern stands north of the square: 7 × 5.2 m, twice the HTML game's floor area. Downstairs are the bar, bottle shelves, barrels, fireplace and rug, plus two tables with chairs; a stair up the east wall leads to an upper floor of six guest beds. The door is 2 m high and the beds 1.9 m long. Every walkway is wide enough for residents to pass easily (all seven of a test crowd reach a bed together in about 15 seconds).
 - Its door opens for anyone who comes near and closes behind them.
 - The tavern bakes its own navigation mesh from its walls, furniture, floors and stair when the game starts, and the open ground's mesh is carved away under it, so the two meet all round. Nothing is placed by hand: move a table in the editor and the routes go round it.
 - Residents' feet follow whatever is under them (floor, step or upper floor), so they walk up and down the stair like any other route.
@@ -95,7 +95,7 @@ Every building follows the tavern's pattern. `data/buildings/tavern.tres` says w
 | Nav | an empty NavigationRegion3D, baked from the collision shapes at start-up |
 | Upper/Beds | `Bed` nodes, each at the middle of a mattress with -Z toward the head |
 
-So the walkable area always comes from the collision shapes: give a new piece of furniture a shape under `Solid` and residents walk round it. Stair steps can be up to 0.3 m high. To add a building, make a scene like this and a `.tres` for it in `data/buildings`.
+So the walkable area always comes from the collision shapes: give a new piece of furniture a shape under `Solid` and residents walk round it. Residents need a gap of 0.6 m to pass between two things and 1.5 m of headroom, including where an upper floor overhangs a stair; stair steps can be up to 0.3 m high. To add a building, make a scene like this and a `.tres` for it in `data/buildings`.
 - `scenes/actors/resident.tscn` is every resident's body, edited like any scene; `scripts/defs/npc_def.gd` is the data each one is made from. To add a resident, add a new `.tres` to `data/npcs`.
 - `scripts/player/player_controller.gd` is the local player: who they control and the keys that drive them. `scripts/world/camera_rig.gd` handles the camera and every mouse action on the world.
 

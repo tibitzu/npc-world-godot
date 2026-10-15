@@ -221,7 +221,7 @@ func _process(delta: float) -> void:
 
 func _update_camera(delta: float) -> void:
 	var ctrl := player.controlled
-	var target := ctrl.position + Vector3.UP * 0.4 if ctrl else goal
+	var target := ctrl.position + Vector3.UP * 0.6 if ctrl else goal
 	# the target crossed a seam: jump the whole rig by one world width (the world looks identical)
 	var jump := Vector3(roundf((target.x - focus.x) / Hex.WRAP) * Hex.WRAP, 0.0,
 		roundf((target.z - focus.z) / Hex.WRAP_Z) * Hex.WRAP_Z)
@@ -248,13 +248,13 @@ func _update_camera(delta: float) -> void:
 		var sh := sin(h)
 		var ch := cos(h)
 		var cp := cos(_fp_pitch)
-		# eye: 0.12 m in front of the face at 0.9 m; third person: 3 m behind and 3 m above that
-		var back := 0.12 + (-3.0 - 0.12) * t
-		var up := 0.9 + 3.0 * t
+		# eye: 0.18 m in front of the face at 1.35 m; third person: 3.5 m behind and 3 m above that
+		var back := 0.18 + (-3.5 - 0.18) * t
+		var up := 1.35 + 3.0 * t
 		var fp_pos := g + Vector3(sh * back, up, ch * back)
 		# first person looks where the resident looks; third person aims 3.3 m ahead of them
-		var fp_look := g + Vector3(sh * (0.12 + cp * 5.0), 0.9 + sin(_fp_pitch) * 5.0, ch * (0.12 + cp * 5.0))
-		var tp_look := g + Vector3(sh * 3.3, 0.4, ch * 3.3)
+		var fp_look := g + Vector3(sh * (0.18 + cp * 5.0), 1.35 + sin(_fp_pitch) * 5.0, ch * (0.18 + cp * 5.0))
+		var tp_look := g + Vector3(sh * 3.3, 0.6, ch * 3.3)
 		cam_pos = orbit.lerp(fp_pos, ease)
 		look_at = focus.lerp(fp_look.lerp(tp_look, t), ease)
 		fov = 42.0 + 16.0 * t * ease    # a wider lens in third person keeps feet and horizon on screen

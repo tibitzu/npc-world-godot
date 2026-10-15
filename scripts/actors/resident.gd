@@ -209,7 +209,7 @@ func _physics_process(delta: float) -> void:
 		# glide while slowing down must never spin them round
 		if not key_move and (_goal != null or not controlled):
 			heading = lerp_angle(heading, atan2(_vel.x, _vel.y), minf(1.0, delta * (5.0 if controlled else 8.0)))
-		_phase += delta * sp * 7.0
+		_phase += delta * sp * 4.7          # longer legs: a slower stride for the same speed
 	else:
 		_phase *= 0.85
 	_animate(delta)
@@ -275,7 +275,8 @@ func _bed_pose(delta: float) -> void:
 	var t := _lie * _lie * (3.0 - 2.0 * _lie)
 	var hd := bed.head_dir()
 	var stand_h := atan2(hd.x, hd.z)
-	var lie_pos := bed.global_position - hd * 0.5 + Vector3.UP * 0.17
+	# feet near the foot of the mattress, head on the pillow; lifted by the body's half-depth
+	var lie_pos := bed.global_position - hd * (bed.length * 0.5 - 0.4) + Vector3.UP * 0.26
 	position = _stand_at.lerp(lie_pos, t)
 	var standing := Quaternion(Vector3.UP, stand_h)
 	var lying := Basis(hd.cross(Vector3.UP), hd, Vector3.UP).get_rotation_quaternion()

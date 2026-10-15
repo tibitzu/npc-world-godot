@@ -24,7 +24,7 @@ func _ready() -> void:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.albedo_color.a = 0.95
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_ring = _mesh_node(_hex_ring(0.3, 0.37), mat)
+	_ring = _mesh_node(_hex_ring(0.42, 0.5), mat)
 	_hover = _mesh_node(_hex_outline(Hex.S * 0.97), mat)
 	var path_mat := mat.duplicate() as StandardMaterial3D
 	path_mat.albedo_color = Color(0.55, 0.85, 1.0, 0.9)

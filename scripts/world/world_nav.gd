@@ -52,8 +52,8 @@ static func new_nav_mesh() -> NavigationMesh:
 	var nm := NavigationMesh.new()
 	nm.cell_size = CELL
 	nm.cell_height = CELL
-	nm.agent_radius = 0.2
-	nm.agent_height = 1.0
+	nm.agent_radius = 0.25            # a resident's body, arms in
+	nm.agent_height = 1.5
 	nm.agent_max_climb = 0.3          # a stair step is up to 0.3 m
 	nm.agent_max_slope = 46.0
 	nm.border_size = BORDER
@@ -107,8 +107,8 @@ func _flat_mesh(cx: int, cz: int) -> NavigationMesh:
 	var nm := NavigationMesh.new()
 	nm.cell_size = CELL
 	nm.cell_height = CELL
-	nm.agent_radius = 0.2
-	nm.agent_height = 1.0
+	nm.agent_radius = 0.25
+	nm.agent_height = 1.5
 	nm.agent_max_climb = 0.3
 	nm.vertices = PackedVector3Array([
 		Vector3(r.position.x, NAV_SINK, r.position.y),
