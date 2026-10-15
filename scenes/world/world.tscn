@@ -2,8 +2,11 @@
 
 [ext_resource type="Script" path="res://scripts/world/world.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/world/ground.gd" id="2_ground"]
-[ext_resource type="Script" path="res://scripts/world/free_camera.gd" id="3_cam"]
+[ext_resource type="Script" path="res://scripts/world/camera_rig.gd" id="3_cam"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="5_player"]
+[ext_resource type="Script" path="res://scripts/world/world_nav.gd" id="6_nav"]
+[ext_resource type="Script" path="res://scripts/world/markers.gd" id="7_markers"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -36,6 +39,17 @@ directional_shadow_max_distance = 40.0
 
 [node name="Ground" type="MeshInstance3D" parent="."]
 script = ExtResource("2_ground")
+
+[node name="WorldNav" type="Node3D" parent="."]
+script = ExtResource("6_nav")
+
+[node name="Residents" type="Node3D" parent="."]
+
+[node name="Player" type="Node" parent="."]
+script = ExtResource("5_player")
+
+[node name="Markers" type="Node3D" parent="."]
+script = ExtResource("7_markers")
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("3_cam")
@@ -77,3 +91,48 @@ grow_vertical = 0
 theme_override_colors/font_color = Color(0.75, 0.73, 0.68, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_font_sizes/font_size = 13
+
+[node name="Roster" type="VBoxContainer" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -236.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = 120.0
+grow_horizontal = 0
+
+[node name="Buttons" type="HBoxContainer" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -84.0
+offset_right = -16.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+alignment = 2
+
+[node name="View" type="Button" parent="HUD/Buttons"]
+focus_mode = 0
+text = "3rd person"
+
+[node name="LetGo" type="Button" parent="HUD/Buttons"]
+focus_mode = 0
+text = "Let go"
+
+[node name="Idle" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 16.0
+offset_right = 200.0
+offset_bottom = 40.0
+grow_horizontal = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.866, 0.586, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
