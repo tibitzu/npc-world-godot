@@ -60,6 +60,10 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Cobbled roads lead out of the square: a straight one west along the general store's south wall, ending just past Rosehip Cottage, and curving ones east and north. Every building faces a road or the square, with a letterbox by the road (the tavern's is on the square).
 - Beds belong to someone now: each home's bed is its owner's, and the tavern's are guest beds. At bedtime a resident goes to their own bed, or the nearest free guest bed if they haven't one. Mira lives by her cottage and sleeps there. Only Mira lives in town so far, so the other homes are empty.
 
+### Coordinates
+
+A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
+
 ### Controls (overview camera)
 
 | Action | Control |

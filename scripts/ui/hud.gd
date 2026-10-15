@@ -21,6 +21,9 @@ var _phase: Label
 var _day: Label
 var _speed_btns := {}  # speed -> Button
 var _shown_minute := -1
+var _tip: PanelContainer
+var _tip_xz: Label
+var _tip_tile: Label
 
 
 func _ready() -> void:
@@ -34,6 +37,7 @@ func _ready() -> void:
 	_build_roster.call_deferred()      # the residents are added after the HUD is ready
 	_build_clock()
 	_build_speed_bar()
+	_build_cursor_tip()
 	Game.speed_changed.connect(func(_s: int) -> void: _refresh_speed())
 	_idle.offset_top = 62.0
 	_idle.offset_bottom = 86.0
@@ -122,6 +126,57 @@ func _build_speed_bar() -> void:
 	_refresh_speed()
 
 
+# a small tooltip by the mouse cursor: the world x and z (metres) of the ground under it, and its tile
+func _build_cursor_tip() -> void:
+	_tip = PanelContainer.new()
+	_tip.name = "CursorTip"
+	var sb := _panel_style()
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	_tip.add_theme_stylebox_override("panel", sb)
+	_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tip.visible = false
+	add_child(_tip)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tip.add_child(col)
+	_tip_xz = Label.new()
+	_tip_xz.add_theme_font_size_override("font_size", 15)
+	_tip_xz.add_theme_color_override("font_color", Color(0.95, 0.93, 0.86))
+	col.add_child(_tip_xz)
+	_tip_tile = Label.new()
+	_tip_tile.add_theme_font_size_override("font_size", 11)
+	_tip_tile.add_theme_color_override("font_color", Color(0.75, 0.73, 0.68))
+	col.add_child(_tip_tile)
+
+
+func _update_cursor_tip() -> void:
+	var vp := get_viewport()
+	var m := vp.get_mouse_position()
+	var p = _rig.ground_point(m)
+	if p == null or not vp.get_visible_rect().has_point(m):
+		_tip.visible = false
+		return
+	var x := Hex.wrap_x(p.x)
+	var z := Hex.wrap_z(p.z)
+	var i := Hex.tile_at(x, z)
+	_tip_xz.text = "x %.1f   z %.1f" % [x, z]
+	_tip_tile.text = "tile %d, %d · %s" % [Hex.col_of(i), Hex.row_of(i), Game.tiles.kind(i)]
+	_tip.visible = true
+	_tip.reset_size()
+	# beside the cursor, kept on screen
+	var pos := m + Vector2(18, 18)
+	var r := vp.get_visible_rect().size
+	if pos.x + _tip.size.x > r.x:
+		pos.x = m.x - 12 - _tip.size.x
+	if pos.y + _tip.size.y > r.y:
+		pos.y = m.y - 12 - _tip.size.y
+	_tip.position = pos
+
+
 func _refresh_speed() -> void:
 	for sp in _speed_btns:
 		(_speed_btns[sp] as Button).set_pressed_no_signal(sp == Game.speed)
@@ -173,6 +228,7 @@ func _refresh() -> void:
 
 func _process(_delta: float) -> void:
 	_update_clock()
+	_update_cursor_tip()
 	for res in _cards:
 		var r := res as Resident
 		var t := "%s · %s\n%s · sleeps %s–%s" % [r.def.display_name, r.def.role, r.status(),
