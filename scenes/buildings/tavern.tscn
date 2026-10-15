@@ -769,6 +769,7 @@ script = ExtResource("1_building")
 footprint = Vector2(7, 5.2)
 wall_thickness = 0.15
 upper_floor = 2.5
+wall_height = 4.35
 tile_kind = "tavern"
 
 [node name="Ground" type="Node3D" parent="."]

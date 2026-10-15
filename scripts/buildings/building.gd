@@ -5,7 +5,8 @@ extends Node3D
 ##
 ##   Ground   the ground storey's meshes (walls, furniture, the stair)
 ##   Upper    everything above the first floor, with its own Solid body (optional)
-##   Roof     the roof, faded out while you look in at a resident inside (third person)
+##   Roof     the roof, faded out while you look in at a resident inside (third person), or
+##            while the camera itself is inside the walls
 ##   Solid    a StaticBody3D whose shapes are the walls, furniture and stair
 ##   Door     a Door node; it opens for anyone who comes near
 ##   Nav      a NavigationRegion3D, baked from the Solid shapes when the building is placed
@@ -21,6 +22,8 @@ extends Node3D
 @export var wall_thickness := 0.15
 ## Height of the first upper floor; residents below it are on the ground storey.
 @export var upper_floor := 2.5
+## Height of the top of the walls (the eaves).
+@export var wall_height := 4.35
 ## How far round the outside the building's own navigation mesh reaches.
 @export var apron := 1.0
 ## What the tiles under the building are called (shown in the top left).
@@ -122,13 +125,28 @@ func _bake_nav() -> void:
 
 
 func _process(_delta: float) -> void:
-	# look in at a resident inside: fade the roof, and the upper storey if they're below it
-	# (it keeps casting its shadow, so the room stays as dark as it was)
+	# Look in at a resident inside: fade the roof, and the upper storey if they're below it.
+	# The same goes whenever the camera is inside the walls (the third-person camera is still
+	# indoors, at upper-floor height, as you walk out through the door). Faded parts keep
+	# casting their shadows, so the room stays as dark as it was. In first person nothing fades:
+	# the upper floor is the ceiling.
 	var player := get_tree().get_first_node_in_group("player") as PlayerController
 	var rig := get_tree().get_first_node_in_group("camera_rig") as CameraRig
+	if rig == null:
+		return
 	var ctrl := player.controlled if player else null
-	var looking_in := ctrl != null and rig != null and rig.third_person_amount() > 0.3 and is_inside(ctrl.position)
-	_set_peel(looking_in, looking_in and local_height(ctrl.position) < upper_floor - 0.5)
+	var from_above := ctrl == null or rig.third_person_amount() > 0.3
+	var res_in := ctrl != null and from_above and is_inside(ctrl.position)
+	var res_up := res_in and local_height(ctrl.position) >= upper_floor - 0.5
+	var cam := rig.camera.global_position
+	var cam_in := from_above and _within_walls(cam, 0.3) and local_height(cam) < wall_height + 0.3
+	_set_peel(res_in or cam_in, (res_in or cam_in) and not res_up)
+
+
+# a point inside the outer faces of the walls (plus a margin), at any height
+func _within_walls(p: Vector3, margin: float) -> bool:
+	var l := to_local(Vector3(Hex.near_copy_x(p.x, global_position.x), p.y, Hex.near_copy_z(p.z, global_position.z)))
+	return absf(l.x) < footprint.x * 0.5 + margin and absf(l.z) < footprint.y * 0.5 + margin
 
 
 func _set_peel(roof_off: bool, upper_off: bool) -> void:

@@ -33,7 +33,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Residents' feet follow whatever is under them (floor, step or upper floor), so they walk up and down the stair like any other route.
 - Press **B** and every resident nobody is playing walks in, up the stairs and lies down in the nearest free bed (as long as beds are free); press **B** again and they all get up and go back out.
 - Playing a resident, click any floor inside to walk there, and press **F** at the foot of a bed to lie down (or get up). Walking gets you out of bed too.
-- In third person inside, the roof fades away, and the upper floor too while you're downstairs, so you can see in. They keep their shadows, so the room stays dim.
+- In third person inside, the roof fades away, and the upper floor too while you're downstairs, so you can see in. The same happens whenever the camera itself is inside the walls, such as just after you walk out of the door. Faded parts keep their shadows, so the room stays dim.
 
 ### Controls (overview camera)
 
