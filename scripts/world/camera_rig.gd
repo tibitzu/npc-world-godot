@@ -248,12 +248,12 @@ func _update_camera(delta: float) -> void:
 		var sh := sin(h)
 		var ch := cos(h)
 		var cp := cos(_fp_pitch)
-		# eye: 0.18 m in front of the face at 1.35 m; third person: 3.5 m behind and 3 m above that
+		# eye: 0.18 m in front of the face at 1.25 m; third person: 3.5 m behind and 3 m above that
 		var back := 0.18 + (-3.5 - 0.18) * t
-		var up := 1.35 + 3.0 * t
+		var up := 1.25 + 3.0 * t
 		var fp_pos := g + Vector3(sh * back, up, ch * back)
 		# first person looks where the resident looks; third person aims 3.3 m ahead of them
-		var fp_look := g + Vector3(sh * (0.18 + cp * 5.0), 1.35 + sin(_fp_pitch) * 5.0, ch * (0.18 + cp * 5.0))
+		var fp_look := g + Vector3(sh * (0.18 + cp * 5.0), 1.25 + sin(_fp_pitch) * 5.0, ch * (0.18 + cp * 5.0))
 		var tp_look := g + Vector3(sh * 3.3, 0.6, ch * 3.3)
 		cam_pos = orbit.lerp(fp_pos, ease)
 		look_at = focus.lerp(fp_look.lerp(tp_look, t), ease)

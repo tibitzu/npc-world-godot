@@ -37,6 +37,12 @@ height = 0.3
 radial_segments = 16
 rings = 12
 
+[sub_resource type="SphereMesh" id="Mesh_head_shadow"]
+radius = 0.12
+height = 0.24
+radial_segments = 12
+rings = 8
+
 [sub_resource type="SphereMesh" id="Mesh_eye"]
 material = SubResource("Mat_dark")
 radius = 0.022
@@ -98,21 +104,27 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48, 0)
 mesh = SubResource("Mesh_torso")
 
 [node name="Head" type="MeshInstance3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.79, 0)
+cast_shadow = 0
 mesh = SubResource("Mesh_head")
 
+[node name="HeadShadow" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.79, 0)
+cast_shadow = 3
+mesh = SubResource("Mesh_head_shadow")
+
 [node name="EyeL" type="MeshInstance3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, 0.88, 0.135)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, 0.81, 0.135)
 cast_shadow = 0
 mesh = SubResource("Mesh_eye")
 
 [node name="EyeR" type="MeshInstance3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.055, 0.88, 0.135)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.055, 0.81, 0.135)
 cast_shadow = 0
 mesh = SubResource("Mesh_eye")
 
 [node name="Mouth" type="MeshInstance3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.81, 0.146)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.74, 0.143)
 cast_shadow = 0
 mesh = SubResource("Mesh_mouth")
 
