@@ -12,6 +12,8 @@
 [ext_resource type="Script" path="res://scripts/world/roads.gd" id="10_roads"]
 [ext_resource type="Script" path="res://scripts/world/roadworks.gd" id="11_works"]
 [ext_resource type="Script" path="res://scripts/world/conversations.gd" id="12_talk"]
+[ext_resource type="Script" path="res://scripts/world/forest.gd" id="13_forest"]
+[ext_resource type="Script" path="res://scripts/world/lamp_posts.gd" id="14_lamps"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -53,6 +55,12 @@ script = ExtResource("8_square")
 
 [node name="WorldNav" type="Node3D" parent="."]
 script = ExtResource("6_nav")
+
+[node name="Forest" type="Node3D" parent="."]
+script = ExtResource("13_forest")
+
+[node name="LampPosts" type="Node3D" parent="."]
+script = ExtResource("14_lamps")
 
 [node name="Roadworks" type="Node3D" parent="."]
 script = ExtResource("11_works")

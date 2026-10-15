@@ -17,6 +17,11 @@ extends CharacterBody3D
 ##
 ## Talk: now and then, on reaching the end of a stroll, they say one of their lines. Meeting another
 ## resident (see Conversations) they stop, face each other, greet and reply.
+##
+## Work: a resident with a job (def.job, see scripts/brains) does it in their working hours; the
+## job walks them about, sets their pose (chopping, carrying, reaching up with a pole) and what they
+## carry (set_carry). Off duty they stroll as before, and now and then drop into the general store
+## while it's open.
 
 signal arrived
 ## They said something (shown over their head); the HUD's chatter log listens.
@@ -58,7 +63,16 @@ var _path := PackedVector3Array()  # the route being followed (from the agent)
 var _talk_left := 0.0              # real seconds of mouth movement left
 var _queued: Array = []            # [game seconds until, text] lines waiting to be said
 var _face: Node3D = null           # someone they've stopped to talk to, and turn to face
-var _visiting := false             # strolling into the town square
+var _visiting := false             # strolling into the town square (or dropping into the shop)
+## Their day job (or null), and how fast they walk while it has them (0: their usual speed).
+var job: Job = null
+var work_speed := 0.0
+var _job_active := false           # the job is directing them this frame
+## What they're doing with their arms: "" (walking), "carry", "chop" or "light".
+var pose := ""
+var _carry_kind := ""
+var _carry_n := 0
+var _face_pos := Vector3.INF       # a spot to turn and face while standing (set each frame by a job)
 var _bed_line_said := false         # tonight's goodnight has been said
 ## Game time (Game.world_time) before which they won't pipe up on their own again.
 var next_speak := 0.0
@@ -94,6 +108,7 @@ func _ready() -> void:
 	tag.text = def.display_name.to_upper()
 	tag.modulate = Look.html_colour(def.colour).lightened(0.35)
 	_animate(0.0)
+	job = Job.make(self)
 	agent.path_changed.connect(func() -> void:
 		_path = agent.get_current_navigation_path()
 		_wp = 0)
@@ -173,9 +188,84 @@ func say_later(text: String, delay: float) -> void:
 		_queued.append([delay, text])
 
 
-## Is anything on their mind? Played, mid-sentence, waiting to speak, or busy with bed.
+## Is anything on their mind? Played, mid-sentence, waiting to speak, busy with bed, or at work.
 func is_busy() -> bool:
-	return controlled or _say_left > 0.0 or not _queued.is_empty() or bed != null or _lying or _lie > 0.0
+	return controlled or _say_left > 0.0 or not _queued.is_empty() or bed != null or _lying or _lie > 0.0 or _job_active
+
+
+## Turn to face a spot while standing still (a job calls this each frame it wants it).
+func face_toward(p: Vector3) -> void:
+	_face_pos = p
+
+
+## What they're carrying: "parcel" (n of them, in their arms), "logs" (n on their back), "axe" or
+## "pole" (in their right hand), or "" for nothing.
+func set_carry(kind: String, n: int) -> void:
+	if kind == _carry_kind and n == _carry_n:
+		return
+	_carry_kind = kind
+	_carry_n = n
+	for holder in [body, _arm_r]:
+		var old := (holder as Node3D).get_node_or_null("Carry")
+		if old:
+			old.free()
+	if kind == "" or n <= 0:
+		return
+	var c := Node3D.new()
+	c.name = "Carry"
+	match kind:
+		"parcel":
+			body.add_child(c)
+			for i in n:
+				_prop(c, _box_mesh(Vector3(0.22, 0.12, 0.17), 0xb08a5a), Vector3(0.0, 0.5 + i * 0.125, 0.21), Vector3(0, i * 0.3, 0))
+			_prop(c, _box_mesh(Vector3(0.23, 0.01, 0.03), 0xd8c9a3), Vector3(0.0, 0.5 + (n - 1) * 0.125 + 0.065, 0.21), Vector3.ZERO)
+		"logs":
+			body.add_child(c)
+			for i in n:
+				_prop(c, _cyl_mesh(0.05, 0.38, 0x5e3d24), Vector3(0.0, 0.42 + i * 0.095, -0.2), Vector3(0, 0, PI / 2))
+		"axe":
+			_arm_r.add_child(c)
+			_prop(c, _cyl_mesh(0.016, 0.55, 0x8a6242), Vector3(0.0, -0.3, 0.16), Vector3(PI / 2, 0, 0))
+			_prop(c, _box_mesh(Vector3(0.025, 0.13, 0.15), 0x8a929c), Vector3(0.0, -0.33, 0.4), Vector3.ZERO)
+		"pole":
+			# held at the hand, upright while walking; turned to point where the arm reaches when lighting
+			_arm_r.add_child(c)
+			c.position = Vector3(0.0, -0.3, 0.0)
+			_prop(c, _cyl_mesh(0.012, 1.7, 0x5a3b28), Vector3(0.0, 0.45, 0.04), Vector3.ZERO)
+			_prop(c, _box_mesh(Vector3(0.04, 0.08, 0.04), 0xc9a25c), Vector3(0.0, 1.32, 0.04), Vector3.ZERO)
+
+
+func _prop(parent: Node3D, m: Mesh, at: Vector3, rot: Vector3) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = m
+	mi.position = at
+	mi.rotation = rot
+	parent.add_child(mi)
+
+
+static func _prop_mat(hex: int) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Look.html_hex(hex)
+	m.roughness = 0.9
+	return m
+
+
+static func _box_mesh(size: Vector3, hex: int) -> BoxMesh:
+	var b := BoxMesh.new()
+	b.size = size
+	b.material = _prop_mat(hex)
+	return b
+
+
+static func _cyl_mesh(r: float, h: float, hex: int) -> CylinderMesh:
+	var c := CylinderMesh.new()
+	c.top_radius = r
+	c.bottom_radius = r
+	c.height = h
+	c.radial_segments = 8
+	c.rings = 1
+	c.material = _prop_mat(hex)
+	return c
 
 
 ## Stop for a few (game) seconds and turn to face someone.
@@ -202,7 +292,9 @@ func status() -> String:
 	if _lying or _lie > 0.0:
 		return "Asleep" if sleep_time() else "In bed"
 	if bed:
-		return "Going to bed"
+		return "Heading home" if Hex.distance(position, bed.stand_point()) > 12.0 else "Going to bed"
+	if _job_active:
+		return job.label()
 	if moving:
 		return "Walking"
 	return "Idle"
@@ -210,6 +302,8 @@ func status() -> String:
 
 ## Hand the resident back to their own routine. If they're in bed they stay there.
 func release() -> void:
+	if job and job.working:
+		job.finish()
 	controlled = false
 	drive = Vector2.ZERO
 	running = false
@@ -220,6 +314,9 @@ func release() -> void:
 
 
 func take_over() -> void:
+	if job and job.working:
+		job.finish()
+	_job_active = false
 	controlled = true
 	if not _lying:
 		_goal = null
@@ -257,10 +354,13 @@ func _physics_process(delta: float) -> void:
 		_bed_pose(delta)
 		_animate(delta)
 		return
+	_job_active = false
 	if not controlled:
-		_autonomy(delta)
+		_job_active = _job_step(delta)
+		if not _job_active:
+			_autonomy(delta)
 	var want := Vector2.ZERO
-	var speed := PLAYED_SPEED * (RUN_FACTOR if running else 1.0) if controlled else def.speed
+	var speed := PLAYED_SPEED * (RUN_FACTOR if running else 1.0) if controlled else (work_speed if work_speed > 0.0 else def.speed)
 	var key_move := false
 	if controlled and drive != Vector2.ZERO:
 		_goal = null
@@ -298,12 +398,14 @@ func _physics_process(delta: float) -> void:
 
 	var sp := _vel.length()
 	moving = sp > 0.08
-	if _face != null and not moving and not controlled:
-		# stopped to talk: turn to face them
-		var to := Hex.offset(position, _face.position)
-		heading = lerp_angle(heading, atan2(to.x, to.z), minf(1.0, delta * 6.0))
-		if _timer <= 0.0:
+	if (_face != null or _face_pos != Vector3.INF) and not moving and not controlled:
+		# stopped to talk (or to work at something): turn to face it
+		var to := Hex.offset(position, _face.position if _face != null else _face_pos)
+		if to.length() > 0.05:
+			heading = lerp_angle(heading, atan2(to.x, to.z), minf(1.0, delta * 6.0))
+		if _face != null and _timer <= 0.0:
 			_face = null
+	_face_pos = Vector3.INF
 	if moving:
 		# face the way we're going only when heading somewhere; a player's backwards or sideways
 		# glide while slowing down must never spin them round
@@ -412,9 +514,35 @@ func _bed_pose(delta: float) -> void:
 		_release_bed()
 
 
+# the day job, when it's working hours and not bedtime; true while it's directing them
+func _job_step(delta: float) -> bool:
+	if job == null:
+		return false
+	if bed != null or _lying or _lie > 0.0 or sleep_time() or _bedtime_soon():
+		if job.working:
+			job.finish()
+		return false
+	return job.tick(delta)
+
+
+# Set off home in time to be in bed by bedtime: true from when the walk to their bed would take
+# all the time left (or once they're on their way, or already in bed early).
+func _bedtime_soon() -> bool:
+	var until := fposmod(def.sleep_hour - Game.local_hours(position.x), 24.0)
+	if until > 12.0:
+		return false
+	if bed != null:
+		return true
+	var b := _nearest_free_bed()
+	if b == null:
+		return false
+	var secs := Hex.distance(position, b.stand_point()) * 1.2 / maxf(def.speed, 0.1)
+	return until <= secs / (Game.DAY_SECONDS / 24.0) + 0.25
+
+
 # bedtime and morning, for a resident nobody is playing
 func _routine(delta: float) -> void:
-	var night := sleep_time()
+	var night := sleep_time() or _bedtime_soon()
 	if night:
 		if bed != null:
 			return                              # in bed, or on the way
@@ -474,6 +602,12 @@ func _autonomy(delta: float) -> void:
 		var t0 := Hex.tile_at(back.x + randf_range(-2.0, 2.0), back.z + randf_range(-2.0, 2.0))
 		_set_goal(Hex.tile_pos(t0))
 		return
+	if ShopJob.is_open() and def.job != "shop" and randf() < 0.12:
+		# drop into the general store while it's open
+		var c := ShopJob.customer_spot() + Vector3(randf_range(-0.4, 0.4), 0.0, 0.0)
+		_set_goal(Vector3(Hex.near_copy_x(c.x, position.x), c.y, Hex.near_copy_z(c.z, position.z)))
+		_visiting = true
+		return
 	var square := get_tree().get_first_node_in_group("town_square") as TownSquare
 	if square and randf() < def.town_visits:
 		var spot := square.random_spot()
@@ -502,4 +636,19 @@ func _animate(delta: float) -> void:
 	_arm_r.rotation.x = -a
 	_leg_l.rotation.x = -a * 0.8
 	_leg_r.rotation.x = a * 0.8
+	match pose:
+		"carry":
+			_arm_l.rotation.x = -1.05
+			_arm_r.rotation.x = -1.05
+		"chop":
+			var k := absf(sin(Game.world_time * 4.5))
+			_arm_r.rotation.x = -0.3 - 2.4 * k
+			_arm_l.rotation.x = -0.2 - 2.0 * k
+		"light":
+			_arm_r.rotation.x = -2.3
+			_arm_l.rotation.x = 0.0
+	if _carry_kind == "pole":
+		var held := _arm_r.get_node_or_null("Carry") as Node3D
+		if held:
+			held.rotation.x = PI if pose == "light" else -_arm_r.rotation.x
 	_mouth.scale.y = 1.0 + 3.0 * absf(sin(Time.get_ticks_msec() * 0.018)) if _talk_left > 0.0 else 1.0

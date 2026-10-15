@@ -21,3 +21,6 @@ wake_lines = PackedStringArray("Rise and run!", "Morning route starts now.")
 greet_lines = PackedStringArray("Yo, {n}!", "Coming through, {n}!", "{n}! Anything to deliver?")
 reply_lines = PackedStringArray("Heard. Gotta run.", "Cool cool cool.", "Noted!", "Sure thing.")
 answer_lines = PackedStringArray("No idea, I just carry things.", "Ask me later, I'm on a route.", "Probably? Maybe. Gotta go.")
+job = "post"
+work_from = 7.0
+work_to = 17.0

@@ -21,3 +21,6 @@ wake_lines = PackedStringArray("Morning! Shop's open.", "Kettle on, door unbarre
 greet_lines = PackedStringArray("{Tod}, {n}! Buying or selling?", "{n}! Got coin burning a hole?", "Ah, {n}. Mind the barrels.")
 reply_lines = PackedStringArray("Mm-hm. That'll be two silver.", "Fair's fair.", "I'll make a note.", "Ha! Not for sale.")
 answer_lines = PackedStringArray("Depends who's asking. And paying.", "Ask me again over the counter.", "Couldn't say. Can I sell you something?")
+job = "shop"
+work_from = 8.0
+work_to = 19.0

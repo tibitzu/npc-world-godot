@@ -34,3 +34,11 @@ extends Resource
 @export var greet_lines: PackedStringArray = []
 @export var reply_lines: PackedStringArray = []
 @export var answer_lines: PackedStringArray = []
+
+## Their day job (see scripts/brains): "shop", "woodcutter", "post", "lamplighter", "patrol", or
+## none. They work between work_from and work_to (local hours; a shift may run past midnight),
+## walking at work_speed while they do (0: their usual speed).
+@export var job := ""
+@export_range(0.0, 24.0, 0.25) var work_from := 8.0
+@export_range(0.0, 24.0, 0.25) var work_to := 18.0
+@export var work_speed := 0.0

@@ -75,8 +75,17 @@ static func chunk_bounds(cx: int, cz: int) -> Rect2:
 
 ## Take an area (world x, z) out of the open ground, for a building's own mesh to fill.
 func carve(area: Rect2) -> void:
-	_holes.append(area)
-	for key in _chunks_touching(area):
+	carve_many([area])
+
+
+## Take several areas out at once (trees, lamp posts): each chunk they touch is baked again once.
+func carve_many(areas: Array) -> void:
+	var keys := {}
+	for area in areas:
+		_holes.append(area)
+		for key in _chunks_touching(area):
+			keys[key] = true
+	for key in keys:
 		var nm := _baked_mesh(key.x, key.y)
 		_meshes[key] = nm
 		for region in _regions[key]:

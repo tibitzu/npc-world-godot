@@ -21,3 +21,7 @@ wake_lines = PackedStringArray("Day watch, reporting.", "Morning. Dex, you're re
 greet_lines = PackedStringArray("Halt, {n}! Just kidding. {Tod}.", "{n}. Keeping out of trouble?", "Citizen {n}.")
 reply_lines = PackedStringArray("Noted.", "Understood.", "I'll put that in the report.", "Carry on.")
 answer_lines = PackedStringArray("Classified.", "Ask my brother. Actually, don't.", "Can't say. Guard business.")
+job = "patrol"
+work_from = 7.0
+work_to = 20.0
+work_speed = 1.5

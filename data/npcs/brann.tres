@@ -21,3 +21,7 @@ wake_lines = PackedStringArray("Up before the birds. Trees won't fell themselves
 greet_lines = PackedStringArray("Hey there, {n}!", "Mornin', {n}. Fine day for chopping.", "{n}! Need any firewood?")
 reply_lines = PackedStringArray("Ha! Good one.", "Aye.", "Sounds about right.", "Hmph. Fair.")
 answer_lines = PackedStringArray("Ask a tree. They've been here longer.", "No idea, friend.", "Maybe after I finish this stack.")
+job = "woodcutter"
+work_from = 5.0
+work_to = 18.0
+work_speed = 1.4

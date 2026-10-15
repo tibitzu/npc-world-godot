@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 8, talking
+## Where it's up to: milestone 9, work
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -84,6 +84,21 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - **Say something** as the resident you're playing: press **Enter**, type, and Enter again (Esc to cancel). It shows over their head, and everyone within earshot stops, turns and replies one after another; ask a question (with a ?) and they answer it instead. While you're typing, keys don't move anyone.
 - **Town chatter**, bottom left: the last few things said near where you are (or where the camera is looking), in each speaker's colour, fading after a while.
 - Each resident's greetings, replies and answers are in their `.tres` (`greet_lines`, `reply_lines`, `answer_lines`; `{n}` is the other's name, `{tod}` / `{Tod}` the time of day), along with how often they visit the square (`town_visits`). The meeting rules are in `scripts/world/conversations.gd`.
+
+**Milestone 9, work**
+- Residents with a trade do it in their working hours (local time), then have the rest of the day to themselves. The cards say what they're up to.
+
+  | Who | Job | Hours |
+  |---|---|---|
+  | Tilda | Minds the general store: stands at the till behind the counter facing the door, potters along the shelves now and then, and welcomes whoever comes up to the counter. While she's there the shop is open, and the others sometimes drop in. | 08:00–19:00 |
+  | Brann | Fells trees in the new pine woods behind Timber Hollow: chops (axe over his head) until it topples ("Timber!"), gathers the three logs it leaves, carries them home on his back and stacks them on his woodpile. The fire burns a log every few hours; when the pile's full he takes the day off. Felled trees leave a stump and grow back in a day and a half. | 05:00–18:00 |
+  | Bolt | Rounds: collects the post from the pillar box outside Bolt Post, runs it (parcels in his arms) to two of the town's letterboxes, posts it, and comes back for more. | 07:00–17:00 |
+  | Old Fen | Lights the four new street lamps by the tavern and the Wick, one by one with his lighting pole, from late afternoon. They burn all night and gutter out at dawn. | from 16:15 |
+  | Dax and Dex | Patrol: from the barracks along the east road and round the square's corners and back, stopping to look about at each. Dax by day, Dex (the other way round) by night. | 07:00–20:00 / 19:00–09:00 |
+
+- Everyone sets off home in time to be in bed by bedtime (the town is a long walk end to end in a two-minute day); the cards say "Heading home" on the way.
+- Take over a resident at work and the job stops (whatever they were carrying is put away); let go and they pick it up again.
+- Jobs live in `scripts/brains` (one script each, on a shared `Job` base); a resident's job and hours are in their `.tres` (`job`, `work_from`, `work_to`, `work_speed`). The woods are `scripts/world/forest.gd`, the street lamps `scripts/world/lamp_posts.gd`, and the woodpile `scripts/buildings/wood_pile.gd`.
 
 ### Coordinates
 
@@ -166,6 +181,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 9
+## Next: milestone 10
 
-Work: each resident's day job from the HTML game. Tilda minds the counter in her store, Bolt runs deliveries between the letterboxes, Fen lights the lamps at dusk and puts them out at dawn, Brann chops wood, and the guards patrol.
+Doing the work yourself: while playing a resident you can fell a tree, pick up logs and stack them on the woodpile, light a street lamp, post a parcel or mind the till, with a pack panel showing what you're carrying (as in the HTML game).

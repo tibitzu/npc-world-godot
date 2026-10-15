@@ -21,3 +21,7 @@ wake_lines = PackedStringArray("Evening coming. The lamps won't light themselves
 greet_lines = PackedStringArray("Ah, {n}.", "Good {tod}, {n}.", "Slow down, {n}, the world isn't going anywhere.")
 reply_lines = PackedStringArray("Kids these days.", "Hm. Indeed.", "I've heard stranger.", "Quite.")
 answer_lines = PackedStringArray("The lamp knows. Ask the lamp.", "Patience will tell you.", "Hmm. Perhaps.")
+job = "lamplighter"
+work_from = 16.25
+work_to = 2.0
+work_speed = 1.4
