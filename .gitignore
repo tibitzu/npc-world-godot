@@ -1,0 +1,5 @@
+# Godot's cache and imported files; rebuilt when the project opens
+.godot/
+*.tmp
+/android/
+/build/
