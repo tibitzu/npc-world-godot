@@ -2,7 +2,7 @@ extends Node3D
 ## The world scene's root: aims the sun and brings in the buildings from res://data/buildings
 ## and the residents from res://data/npcs.
 
-const SUN_DIR := Vector3(0.45, 0.8, 0.3)     # toward the sun, as in the HTML game's daytime
+const SUN_DIR := Vector3(0.45, 0.8, 0.3)     # toward the sun until the DayNight node takes over
 const RESIDENT := preload("res://scenes/actors/resident.tscn")
 
 

@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 3, a building you can go into
+## Where it's up to: milestone 4, the clock
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -35,6 +35,12 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Playing a resident, click any floor inside to walk there, and press **F** at the foot of a bed to lie down (or get up). Walking gets you out of bed too.
 - In third person inside, the roof fades away, and the upper floor too while you're downstairs, so you can see in. The same happens whenever the camera itself is inside the walls, such as just after you walk out of the door. Faded parts keep their shadows, so the room stays dim.
 
+**Milestone 4, the clock**
+- A day lasts 2 minutes, as in the HTML game, and the game begins at noon on Day 1.
+- The sun crosses the map from east to west, so the time of day depends on where you are: when it's noon at the town square, it's midnight half the map away. The clock in the top left shows the local time where you're looking (or where the resident you're playing stands), the part of the day, and which day it is, with the HTML game's 24-hour dial.
+- Day and night: the sunlight fades and warms at dawn and dusk and is gone at night, when the sky light drops to a third. The sun swings from east to west through the day, so shadows move. Lamps grow brighter after dark and windows glow; fires burn the same all day.
+- Game speed: 1×, 2× or 5× from the bar at the top (or **[** and **]**). Everything runs faster, residents included; the camera and your turning keys keep their normal pace.
+
 ### Controls (overview camera)
 
 | Action | Control |
@@ -49,6 +55,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 | Hex tiles on/off | V |
 | Show routes | P |
 | Everyone else to bed / up again | B |
+| Game speed slower / faster | [ and ] |
 
 ### Controls (playing a resident)
 
@@ -68,7 +75,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 ## How it's organised
 
 ```
-autoload/   Game (seed, tile grid), Events (shared signals), Registry (content by id), Net (multiplayer, later)
+autoload/   Game (seed, tile grid, clock and speed), Events (shared signals), Registry (content by id), Net (multiplayer, later)
 data/       content definitions as .tres files: items, npcs (mira.tres), monsters, buildings (tavern.tres), professions
 scenes/     world, buildings (tavern.tscn), actors (resident.tscn) and UI scenes
 scripts/    world (hex grid, ground, navigation, camera), buildings, actors, player, defs, components, brains, UI
@@ -78,6 +85,7 @@ tools/      editor and test helpers
 
 - `scripts/world/hex.gd` holds the hex grid and wrap maths, ported from the HTML game: which tile a point is on, neighbours, and the shortest distance across the seams. Everything that measures distance goes through it.
 - `scripts/world/tile_grid.gd` keeps each tile's flags, kind and colour in packed arrays, plus a texture the ground shader reads.
+- `autoload/game.gd` keeps the clock: game time, the speed, local time at any east–west position, the day number. `scripts/world/day_night.gd` sets the sun, sky light, lamps and windows from it each frame.
 - `scripts/world/town_square.gd` lays the cobbled square (its size and centre are settings on the TownSquare node in the world scene); `shaders/cobbles.gdshader` draws the stones and the kerb round the edge.
 - The ground is one plane that follows the camera; its shader folds every point back onto the map, which is what makes the wrap seamless.
 - `scripts/world/world_nav.gd` covers the map with navigation mesh in a 12 × 10 grid of chunks. The chunks along each edge also get a copy just past the opposite edge, so routes run straight across the seam; a resident who steps over it is moved back by one world width. A building carves its area out, and only the chunks it touches are baked again (about a tenth of a second each).
@@ -106,9 +114,9 @@ So the walkable area always comes from the collision shapes: give a new piece of
 `tools/screenshot.tscn` renders the world and saves a PNG:
 
 ```
-godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex]
+godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 4
+## Next: milestone 5
 
-The clock: the time of day, a day counter and game speed.
+Daily routines: each resident gets the HTML game's sleep and wake hours, and at bedtime walks to a bed (home, or the tavern) and lies down, then gets up and goes about their day in the morning, without anyone pressing B.

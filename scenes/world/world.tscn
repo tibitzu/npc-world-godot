@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/world/world_nav.gd" id="6_nav"]
 [ext_resource type="Script" path="res://scripts/world/markers.gd" id="7_markers"]
 [ext_resource type="Script" path="res://scripts/world/town_square.gd" id="8_square"]
+[ext_resource type="Script" path="res://scripts/world/day_night.gd" id="9_daynight"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -64,6 +65,9 @@ script = ExtResource("3_cam")
 fov = 42.0
 near = 0.05
 far = 400.0
+
+[node name="DayNight" type="Node" parent="."]
+script = ExtResource("9_daynight")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("4_hud")

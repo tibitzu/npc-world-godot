@@ -124,7 +124,7 @@ func _process(delta: float) -> void:
 	controlled.drive = Vector2(f, s)
 	controlled.running = Input.is_action_pressed("run")
 	if turn != 0.0:
-		controlled.heading -= turn * delta * TURN_SPEED
+		controlled.heading -= turn * Game.real_delta(delta) * TURN_SPEED   # turning keeps its real-time feel
 	if f != 0.0 or s != 0.0 or turn != 0.0:
 		touch()
 	if idle_left() <= 0.0:
