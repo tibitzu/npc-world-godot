@@ -27,7 +27,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - After 30 seconds without input, Mira goes back to her own business (a countdown shows for the last 10).
 
 **Milestone 3, the tavern**
-- The Hex & Lantern stands north of the square: 7 × 5.2 m, twice the HTML game's floor area. Downstairs are the bar, bottle shelves, barrels, fireplace and rug, plus two tables with chairs; a stair up the east wall leads to an upper floor of six guest beds. The door is 2 m high and the beds 1.9 m long. Every walkway is wide enough for residents to pass easily (all seven of a test crowd reach a bed together in about 15 seconds).
+- The Hex & Lantern stands north of the square: 7 × 5.2 m, twice the HTML game's floor area. Downstairs are the bar, bottle shelves, barrels, fireplace and rug, plus two tables with chairs (one against the front wall); a stair up the east wall leads to an upper floor of six guest beds. A door in the west wall opens into a one-storey kitchen (4 × 4.4 m) with a hearth and hanging pot, a counter, a worktable with stools, a dresser of plates and jars, sacks and a barrel. The door is 2 m high and the beds 1.9 m long. Every walkway is wide enough for residents to pass easily (all seven of a test crowd reach a bed together in about 15 seconds).
 - Its door opens for anyone who comes near and closes behind them.
 - The tavern bakes its own navigation mesh from its walls, furniture, floors and stair when the game starts, and the open ground's mesh is carved away under it, so the two meet all round. Nothing is placed by hand: move a table in the editor and the routes go round it.
 - Residents' feet follow whatever is under them (floor, step or upper floor), so they walk up and down the stair like any other route.
@@ -95,6 +95,7 @@ Every building follows the tavern's pattern. `data/buildings/tavern.tres` says w
 | Door | a `Door` hinge; its leaf and collider are on the "doors" layer, which residents bump into and the navigation bake ignores |
 | Nav | an empty NavigationRegion3D, baked from the collision shapes at start-up |
 | Upper/Beds | `Bed` nodes, each at the middle of a mattress with -Z toward the head |
+| Ground/Kitchen | a room built on beside the main block; its outer walls are listed in the root's `extra_parts`, so it counts as inside, gets its own tiles and is covered by the baked navigation |
 
 So the walkable area always comes from the collision shapes: give a new piece of furniture a shape under `Solid` and residents walk round it. Residents need a gap of 0.6 m (the navigation mesh keeps 0.3 m clear of everything) to pass between two things and 1.5 m of headroom, including where an upper floor overhangs a stair; stair steps can be up to 0.3 m high. To add a building, make a scene like this and a `.tres` for it in `data/buildings`.
 - `scenes/actors/resident.tscn` is every resident's body, edited like any scene; `scripts/defs/npc_def.gd` is the data each one is made from. To add a resident, add a new `.tres` to `data/npcs`.

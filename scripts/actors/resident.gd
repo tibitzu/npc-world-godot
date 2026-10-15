@@ -39,6 +39,8 @@ var _stuck := 0.0
 var _lying := false                # in bed, or getting in
 var _lie := 0.0                    # 0 standing .. 1 lying down
 var _stand_at := Vector3.ZERO      # where they got in (and will get out)
+var _path := PackedVector3Array()  # the route being followed (from the agent)
+var _wp := 0                       # which point of it they're heading for
 
 @onready var agent: NavigationAgent3D = $Agent
 @onready var body: Node3D = $Body
@@ -68,6 +70,9 @@ func _ready() -> void:
 	tag.text = def.display_name.to_upper()
 	tag.modulate = Look.html_colour(def.colour).lightened(0.35)
 	_animate(0.0)
+	agent.path_changed.connect(func() -> void:
+		_path = agent.get_current_navigation_path()
+		_wp = 0)
 
 
 ## Walk to a point on the map along the navigation mesh. Its height picks the floor
@@ -183,7 +188,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			if agent.is_navigation_finished():
 				_retarget()
-			var step := agent.get_next_path_position() - position
+			var step := _steer_point() - position
 			step.y = 0.0
 			if step.length() > 0.001:
 				want = Vector2(step.x, step.z).normalized()
@@ -213,6 +218,24 @@ func _physics_process(delta: float) -> void:
 	else:
 		_phase *= 0.85
 	_animate(delta)
+
+
+# The next point of the route to head for. Points count as reached by horizontal distance
+# (a point on a stair can be a step's height above or below the feet), or once they're behind
+# us along the way to the point after.
+func _steer_point() -> Vector3:
+	agent.get_next_path_position()     # keeps the agent's own route up to date
+	if _path.is_empty():
+		return agent.get_next_path_position()
+	while _wp < _path.size() - 1:
+		var here := _path[_wp]
+		var flat := Vector2(position.x - here.x, position.z - here.z)
+		var ahead := Vector2(_path[_wp + 1].x - here.x, _path[_wp + 1].z - here.z)
+		if flat.length() < 0.15 or (flat.length() < 0.45 and flat.dot(ahead) > 0.0):
+			_wp += 1
+		else:
+			break
+	return _path[_wp]
 
 
 # stand on whatever is underfoot: a building's floor, a stair step or an upper floor (anything

@@ -1,7 +1,8 @@
 class_name Door
 extends Node3D
 ## A hinged door: this node is the hinge, and the leaf runs along its +X. It swings open
-## (inward, toward -Z) when a resident comes within reach, and closes once nobody is near.
+## (toward its -Z) when a resident comes within reach, and closes once nobody is near. Turn the
+## node to hang the door in any wall.
 ##
 ## Its collider is on the "doors" layer, which residents bump into but the navigation bake
 ## ignores, so routes go straight through the doorway and the door gets out of the way.
@@ -14,7 +15,13 @@ extends Node3D
 
 var is_open := false
 
+var _closed_y := 0.0               # the door's turn when shut (it may be set in any direction)
+
 @onready var _shape: CollisionShape3D = $Body/Shape
+
+
+func _ready() -> void:
+	_closed_y = rotation.y
 
 
 func _physics_process(delta: float) -> void:
@@ -25,7 +32,7 @@ func _physics_process(delta: float) -> void:
 		if absf(p.y - mid.y) < 1.0 and Hex.distance(p, mid) < reach:
 			is_open = true
 			break
-	var goal := open_angle if is_open else 0.0
+	var goal := _closed_y + (open_angle if is_open else 0.0)
 	rotation.y += (goal - rotation.y) * minf(1.0, delta * 6.0)
 	# once it's swinging open it stops blocking; it blocks again when shut
-	_shape.disabled = rotation.y > 0.25
+	_shape.disabled = rotation.y - _closed_y > 0.25
