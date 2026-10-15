@@ -8,5 +8,5 @@ script = ExtResource("1_def")
 id = "post_office"
 display_name = "Bolt Post"
 scene = ExtResource("2_scene")
-position = Vector2(-12.9, 12.6)
+position = Vector2(-12.9, 14.4)
 rotation = 90.0
