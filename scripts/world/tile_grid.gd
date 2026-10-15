@@ -7,12 +7,11 @@ extends RefCounted
 ## reads for both the smooth ground and the hex tiles (V).
 
 const F_BLOCK := 1
-const F_ROAD := 2
+const F_ROAD := 2              # paved: the town square
 const F_INSIDE := 4
 const F_NOTREE := 8
 
 const MOSS: Array[int] = [0x6f9a5c, 0x7aa565, 0x668f55, 0x82ab6a]
-const PATH: Array[int] = [0xcdb88f, 0xd6c39a, 0xc4ae85]
 
 var flags := PackedByteArray()
 var kinds := PackedByteArray()
@@ -31,22 +30,10 @@ func _init() -> void:
 	texture = ImageTexture.create_from_image(_make_image())
 
 
-## The town's roads: a ring round the square, the north-south road and the east-west road.
-## These run on across the whole map and meet themselves at the seams.
-static func is_road(x: float, z: float) -> bool:
-	return Vector2(x, z + 1.0).length() < 5.4 or absf(x) < 0.55 or absf(z - 1.6) < 0.5
-
-
+# open moss everywhere; the town square and buildings recolour their own tiles
 func _paint_base() -> void:
-	var road_kind := kind_names.find("road")
 	for i in Hex.COUNT:
-		var h := Hex.hash01(i)
-		if is_road(Hex.tile_x(i), Hex.tile_z(i)):
-			flags[i] = F_ROAD
-			kinds[i] = road_kind
-			_put_colour(i, PATH[int(h * PATH.size())], 0.09)
-		else:
-			_put_colour(i, MOSS[int(h * MOSS.size())], 0.09)
+		_put_colour(i, MOSS[int(Hex.hash01(i) * MOSS.size())], 0.09)
 
 
 func _put_colour(i: int, hex: int, jitter := 0.0) -> void:

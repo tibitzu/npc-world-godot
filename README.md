@@ -13,8 +13,8 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 ## Where it's up to: milestone 3, a building you can go into
 
 **Milestone 1, the ground and camera**
-- The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile exactly as in the HTML game (moss greens, sandy roads).
-- The town's roads: the ring round the square, the north–south road and the east–west road, running on across the map.
+- The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
+- The town square: a 10.5 m square of grey cobblestones (1.5 times the tavern's front) whose north edge runs along the tavern's front wall, centred on its door. (The HTML game's sandy roads and round square have been taken out.)
 - The world wraps both ways: go far enough east and you come back from the west, with no seam anywhere.
 - The sun, shadows, and the view fading into black with distance.
 - Press **V** to switch between the smooth ground and the hex tiles. The tile under the cursor shows in the top left.
@@ -72,12 +72,13 @@ autoload/   Game (seed, tile grid), Events (shared signals), Registry (content b
 data/       content definitions as .tres files: items, npcs (mira.tres), monsters, buildings (tavern.tres), professions
 scenes/     world, buildings (tavern.tscn), actors (resident.tscn) and UI scenes
 scripts/    world (hex grid, ground, navigation, camera), buildings, actors, player, defs, components, brains, UI
-shaders/    the ground shader that draws the wrapping map
+shaders/    the ground shader that draws the wrapping map, and the cobblestones
 tools/      editor and test helpers
 ```
 
 - `scripts/world/hex.gd` holds the hex grid and wrap maths, ported from the HTML game: which tile a point is on, neighbours, and the shortest distance across the seams. Everything that measures distance goes through it.
 - `scripts/world/tile_grid.gd` keeps each tile's flags, kind and colour in packed arrays, plus a texture the ground shader reads.
+- `scripts/world/town_square.gd` lays the cobbled square (its size and centre are settings on the TownSquare node in the world scene); `shaders/cobbles.gdshader` draws the stones and the kerb round the edge.
 - The ground is one plane that follows the camera; its shader folds every point back onto the map, which is what makes the wrap seamless.
 - `scripts/world/world_nav.gd` covers the map with navigation mesh in a 12 × 10 grid of chunks. The chunks along each edge also get a copy just past the opposite edge, so routes run straight across the seam; a resident who steps over it is moved back by one world width. A building carves its area out, and only the chunks it touches are baked again (about a tenth of a second each).
 
