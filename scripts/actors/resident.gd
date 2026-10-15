@@ -20,12 +20,14 @@ extends CharacterBody3D
 ##
 ## Work: a resident with a job (def.job, see scripts/brains) does it in their working hours; the
 ## job walks them about, sets their pose (chopping, carrying, reaching up with a pole) and what they
-## carry (set_carry). Off duty they stroll as before, and now and then drop into the general store
+## carry (their pack, and set_held for a tool). Off duty they stroll as before, and now and then drop into the general store
 ## while it's open.
 
 signal arrived
 ## They said something (shown over their head); the HUD's chatter log listens.
 signal spoke(text: String)
+## Their pack changed (the HUD's pack panel listens).
+signal packed
 
 const PLAYED_SPEED := 2.3          # m/s when a player walks them
 const RUN_FACTOR := 1.5            # Left Shift
@@ -34,6 +36,7 @@ const LIE_TIME := 0.7              # seconds to lie down or get up
 const SAY_MIN := 2.8               # real seconds a line stays over their head, at least...
 const SAY_PER_CHAR := 0.07         # ...or 1.2 s plus this per letter, for longer ones
 const MUSE_CHANCE := 0.45          # chance of saying a line at the end of a stroll
+const PACK_CAP := {"logs": 3, "parcels": 2}
 const ROUTINE_CHECK := 2.0         # how often (game seconds) a resident looks for a bed if none was free
 const STEP_UP := 0.35              # the highest step they walk up without noticing (m)
 const FLOOR_MASK := 1              # the "world" layer: floors, stairs, walls, furniture
@@ -70,8 +73,12 @@ var work_speed := 0.0
 var _job_active := false           # the job is directing them this frame
 ## What they're doing with their arms: "" (walking), "carry", "chop" or "light".
 var pose := ""
-var _carry_kind := ""
-var _carry_n := 0
+var _held := ""                    # the tool in their right hand
+## What they're carrying: logs on their back, parcels in their arms.
+var pack := {"logs": 0, "parcels": 0}
+var _action_left := 0.0            # game seconds of the current action (felling, lighting) left
+var _action_done := Callable()
+var _action_at := Vector3.ZERO
 var _face_pos := Vector3.INF       # a spot to turn and face while standing (set each frame by a job)
 var _bed_line_said := false         # tonight's goodnight has been said
 ## Game time (Game.world_time) before which they won't pipe up on their own again.
@@ -198,41 +205,96 @@ func face_toward(p: Vector3) -> void:
 	_face_pos = p
 
 
-## What they're carrying: "parcel" (n of them, in their arms), "logs" (n on their back), "axe" or
-## "pole" (in their right hand), or "" for nothing.
-func set_carry(kind: String, n: int) -> void:
-	if kind == _carry_kind and n == _carry_n:
-		return
-	_carry_kind = kind
-	_carry_n = n
+## Put something in their pack, if there's room ("logs" or "parcels"). False if it's full.
+func pack_add(kind: String, n := 1) -> bool:
+	if pack.get(kind, 0) + n > PACK_CAP.get(kind, 0):
+		return false
+	pack[kind] = pack.get(kind, 0) + n
+	_refresh_props()
+	packed.emit()
+	return true
+
+
+## Take something out of their pack. False if there isn't that much.
+func pack_take(kind: String, n := 1) -> bool:
+	if pack.get(kind, 0) < n:
+		return false
+	pack[kind] -= n
+	_refresh_props()
+	packed.emit()
+	return true
+
+
+func pack_room(kind: String) -> int:
+	return PACK_CAP.get(kind, 0) - pack.get(kind, 0)
+
+
+## A tool in their right hand: "axe", "pole" or "" for none.
+func set_held(tool: String) -> void:
+	if tool != _held:
+		_held = tool
+		_refresh_props()
+
+
+## Something that takes a moment (felling a tree, lighting a lamp): they stand facing `at` in a
+## pose, holding a tool, for secs game seconds, then done is called. Walking off cancels it.
+func start_action(action_pose: String, tool: String, secs: float, at: Vector3, done: Callable) -> void:
+	_action_left = secs
+	_action_done = done
+	_action_at = at
+	_goal = null
+	pose = action_pose
+	set_held(tool)
+	var to := Hex.offset(position, at)
+	if to.length() > 0.05:
+		heading = atan2(to.x, to.z)
+
+
+func is_acting() -> bool:
+	return _action_left > 0.0
+
+
+func _end_action(finished: bool) -> void:
+	_action_left = 0.0
+	pose = ""
+	set_held("")
+	var done := _action_done
+	_action_done = Callable()
+	if finished and done.is_valid():
+		done.call()
+
+
+# logs on the back and parcels in the arms (from the pack), and the tool in the right hand
+func _refresh_props() -> void:
 	for holder in [body, _arm_r]:
 		var old := (holder as Node3D).get_node_or_null("Carry")
 		if old:
 			old.free()
-	if kind == "" or n <= 0:
-		return
-	var c := Node3D.new()
-	c.name = "Carry"
-	match kind:
-		"parcel":
-			body.add_child(c)
-			for i in n:
-				_prop(c, _box_mesh(Vector3(0.22, 0.12, 0.17), 0xb08a5a), Vector3(0.0, 0.5 + i * 0.125, 0.21), Vector3(0, i * 0.3, 0))
-			_prop(c, _box_mesh(Vector3(0.23, 0.01, 0.03), 0xd8c9a3), Vector3(0.0, 0.5 + (n - 1) * 0.125 + 0.065, 0.21), Vector3.ZERO)
-		"logs":
-			body.add_child(c)
-			for i in n:
-				_prop(c, _cyl_mesh(0.05, 0.38, 0x5e3d24), Vector3(0.0, 0.42 + i * 0.095, -0.2), Vector3(0, 0, PI / 2))
-		"axe":
-			_arm_r.add_child(c)
-			_prop(c, _cyl_mesh(0.016, 0.55, 0x8a6242), Vector3(0.0, -0.3, 0.16), Vector3(PI / 2, 0, 0))
-			_prop(c, _box_mesh(Vector3(0.025, 0.13, 0.15), 0x8a929c), Vector3(0.0, -0.33, 0.4), Vector3.ZERO)
-		"pole":
-			# held at the hand, upright while walking; turned to point where the arm reaches when lighting
-			_arm_r.add_child(c)
-			c.position = Vector3(0.0, -0.3, 0.0)
-			_prop(c, _cyl_mesh(0.012, 1.7, 0x5a3b28), Vector3(0.0, 0.45, 0.04), Vector3.ZERO)
-			_prop(c, _box_mesh(Vector3(0.04, 0.08, 0.04), 0xc9a25c), Vector3(0.0, 1.32, 0.04), Vector3.ZERO)
+	var logs: int = pack.get("logs", 0)
+	var parcels: int = pack.get("parcels", 0)
+	if logs > 0 or parcels > 0:
+		var c := Node3D.new()
+		c.name = "Carry"
+		body.add_child(c)
+		for i in logs:
+			_prop(c, _cyl_mesh(0.05, 0.38, 0x5e3d24), Vector3(0.0, 0.42 + i * 0.095, -0.2), Vector3(0, 0, PI / 2))
+		for i in parcels:
+			_prop(c, _box_mesh(Vector3(0.22, 0.12, 0.17), 0xb08a5a), Vector3(0.0, 0.5 + i * 0.125, 0.21), Vector3(0, i * 0.3, 0))
+		if parcels > 0:
+			_prop(c, _box_mesh(Vector3(0.23, 0.01, 0.03), 0xd8c9a3), Vector3(0.0, 0.5 + (parcels - 1) * 0.125 + 0.065, 0.21), Vector3.ZERO)
+	if _held != "":
+		var h := Node3D.new()
+		h.name = "Carry"
+		_arm_r.add_child(h)
+		match _held:
+			"axe":
+				_prop(h, _cyl_mesh(0.016, 0.55, 0x8a6242), Vector3(0.0, -0.3, 0.16), Vector3(PI / 2, 0, 0))
+				_prop(h, _box_mesh(Vector3(0.025, 0.13, 0.15), 0x8a929c), Vector3(0.0, -0.33, 0.4), Vector3.ZERO)
+			"pole":
+				# held at the hand, upright while walking; turned to point where the arm reaches when lighting
+				h.position = Vector3(0.0, -0.3, 0.0)
+				_prop(h, _cyl_mesh(0.012, 1.7, 0x5a3b28), Vector3(0.0, 0.45, 0.04), Vector3.ZERO)
+				_prop(h, _box_mesh(Vector3(0.04, 0.08, 0.04), 0xc9a25c), Vector3(0.0, 1.32, 0.04), Vector3.ZERO)
 
 
 func _prop(parent: Node3D, m: Mesh, at: Vector3, rot: Vector3) -> void:
@@ -354,6 +416,13 @@ func _physics_process(delta: float) -> void:
 		_bed_pose(delta)
 		_animate(delta)
 		return
+	if _action_left > 0.0:
+		if (controlled and drive != Vector2.ZERO) or _goal != null:
+			_end_action(false)              # walked off: never mind
+		else:
+			_action_left -= delta
+			if _action_left <= 0.0:
+				_end_action(true)
 	_job_active = false
 	if not controlled:
 		_job_active = _job_step(delta)
@@ -466,6 +535,10 @@ func _arrive() -> void:
 		if _visiting:
 			_timer = 6.0 + randf() * 8.0        # a while in the square before heading home
 			_visiting = false
+			if ShopJob.player_minding() and Hex.distance(position, ShopJob.customer_spot()) < 1.2:
+				face_toward(ShopJob.till_spot())
+				_face = ShopJob.player_keeper
+				say(_pick(PackedStringArray(ShopJob.SHOPPING)))
 		if bed == null and randf() < MUSE_CHANCE and Game.world_time > next_speak and not is_busy():
 			say(_pick(def.lines))
 	arrived.emit()
@@ -636,7 +709,8 @@ func _animate(delta: float) -> void:
 	_arm_r.rotation.x = -a
 	_leg_l.rotation.x = -a * 0.8
 	_leg_r.rotation.x = a * 0.8
-	match pose:
+	var p := pose if pose != "" else ("carry" if pack.get("parcels", 0) > 0 else "")
+	match p:
 		"carry":
 			_arm_l.rotation.x = -1.05
 			_arm_r.rotation.x = -1.05
@@ -647,7 +721,7 @@ func _animate(delta: float) -> void:
 		"light":
 			_arm_r.rotation.x = -2.3
 			_arm_l.rotation.x = 0.0
-	if _carry_kind == "pole":
+	if _held == "pole":
 		var held := _arm_r.get_node_or_null("Carry") as Node3D
 		if held:
 			held.rotation.x = PI if pose == "light" else -_arm_r.rotation.x

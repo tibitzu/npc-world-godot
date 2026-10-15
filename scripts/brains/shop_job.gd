@@ -5,7 +5,8 @@ extends Job
 ## looks them over, and goes back. Anyone who comes up to the counter gets a welcome.
 ##
 ## While she's at the till the shop is open, and other residents now and then drop in (see
-## Resident._autonomy): customer_spot() is where they stand.
+## Resident._autonomy): customer_spot() is where they stand. A player can mind the shop too
+## (F at the till): while they stay there it's open, and customers come up and ask for things.
 
 const TILL := Vector2(-0.6, -1.55)                 # store-local x, z: behind the counter
 const CUSTOMER := Vector2(-0.6, -0.05)             # in front of it
@@ -14,8 +15,13 @@ const WELCOME := ["Welcome in, {n}! What can I get you?", "{n}! Come to spend or
 	"{Tod}, {n}. Have a look round.", "Ah, {n}. Potions are fresh."]
 const WELCOME_AGAIN := 90.0                        # game seconds before the same customer is welcomed again
 
+const SHOPPING := ["Got any rope?", "Just looking, thanks.", "How much for the fizzy one?",
+	"Anything new in?", "A bag of nails, if you've got them.", "I'll take a candle. Two, actually."]
+
 ## The resident minding the shop now, if anyone is (the shop is open while she's at the till).
 static var keeper: ShopJob = null
+## A resident a player is minding the shop with (F at the till), if any.
+static var player_keeper: Resident = null
 
 var _store: Building
 var _state := "to_till"
@@ -25,11 +31,39 @@ var _welcomed := {}                                # resident -> Game.world_time
 
 
 static func is_open() -> bool:
-	return keeper != null and keeper._state == "till"
+	return (keeper != null and keeper._state == "till") or player_minding()
+
+
+## Is a player minding the shop (playing a resident standing at the till)?
+static func player_minding() -> bool:
+	if player_keeper == null or not is_instance_valid(player_keeper) or not player_keeper.controlled:
+		player_keeper = null
+		return false
+	if Hex.distance(player_keeper.position, till_spot()) > 1.3:
+		player_keeper = null
+		return false
+	return true
+
+
+static func _the_store() -> Building:
+	var tree := Engine.get_main_loop() as SceneTree
+	for b in tree.get_nodes_in_group("buildings"):
+		if (b as Node).name == "Store":
+			return b
+	return null
+
+
+static func _store_point(p: Vector2) -> Vector3:
+	var st := _the_store()
+	return st.global_transform * Vector3(p.x, 0.0, p.y) if st else Vector3.ZERO
 
 
 static func customer_spot() -> Vector3:
-	return keeper._at_local(CUSTOMER) if keeper else Vector3.ZERO
+	return _store_point(CUSTOMER)
+
+
+static func till_spot() -> Vector3:
+	return _store_point(TILL)
 
 
 func label() -> String:

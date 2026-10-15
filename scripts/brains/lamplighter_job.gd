@@ -34,7 +34,7 @@ func _lamps_left() -> bool:
 
 
 func step(delta: float) -> bool:
-	r.set_carry("pole", 1)
+	r.set_held("pole")
 	if _i < 0 or _lamps.lamps[_i].lit:
 		_i = _lamps.nearest_unlit(r.position)
 		_state = "walk"

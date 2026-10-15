@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 9, work
+## Where it's up to: milestone 10, doing the work yourself
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -100,6 +100,23 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Take over a resident at work and the job stops (whatever they were carrying is put away); let go and they pick it up again.
 - Jobs live in `scripts/brains` (one script each, on a shared `Job` base); a resident's job and hours are in their `.tres` (`job`, `work_from`, `work_to`, `work_speed`). The woods are `scripts/world/forest.gd`, the street lamps `scripts/world/lamp_posts.gd`, and the woodpile `scripts/buildings/wood_pile.gd`.
 
+**Milestone 10, doing the work yourself**
+- Whoever you're playing can do the town's work with **F**. A hint above the bottom of the screen says what F will do where you stand:
+
+  | Where | F |
+  |---|---|
+  | By a standing tree | Fell it: a few seconds' chopping (moving stops you), then "Timber!" and three logs on the ground |
+  | By a loose log | Pick it up (three fit in a pack, on your back) |
+  | Beside Brann's woodpile, carrying logs | Stack them |
+  | By Bolt Post's pillar box | Collect the post (two parcels, in your arms) |
+  | By a letterbox, carrying post | Post a parcel there |
+  | At the general store's till | Mind the shop: while you stay at the till it's open, and customers drop in and ask for things (answer them with Enter) |
+  | By a street lamp | Light it with a pole, or put it out (one lit by day burns until the next dawn) |
+  | At the foot of a bed | Lie down, or get up (as before) |
+
+- **Packs**: everyone carries their logs and parcels in a pack now (bottom right while you play: logs and parcels slots). What's in it stays when you let go or take someone over, and the residents' jobs use it too: Brann carries on stacking the logs you gathered, Bolt delivers the post you collected.
+- The actions are in `scripts/player/work_actions.gd`.
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -130,7 +147,7 @@ A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is eas
 | Look up and down | Drag |
 | Walk to a tile | Click it (the tile under the cursor is outlined) |
 | Walk somewhere inside | Click the floor |
-| Lie down / get up | F at the foot of a bed |
+| Lie down / get up, or the work at hand | F (the hint on screen says what it'll do) |
 | Say something | Enter, type, Enter (Esc cancels) |
 | First / third person | Scroll, T, or the button |
 | Let go | Esc, the Let go button, or click their card |
@@ -181,6 +198,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 10
+## Next: milestone 11
 
-Doing the work yourself: while playing a resident you can fell a tree, pick up logs and stack them on the woodpile, light a street lamp, post a parcel or mind the till, with a pack panel showing what you're carrying (as in the HTML game).
+Looks: the hats and gear from the HTML game (Mira's brimmed hat, Bolt's cap, Fen's top hat, Brann's beanie and beard, Tilda's apron, the twins' helmets with their different plumes), so everyone is recognisable at a glance.

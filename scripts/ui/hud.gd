@@ -28,6 +28,12 @@ var _tip_tile: Label
 var _chatter: VBoxContainer
 var _chat_lines: Array = []    # [Label, real time it was said]
 var _say_box: LineEdit
+var _hint: Label
+var _hint_wait := 0.0
+var _pack: PanelContainer
+var _pack_title: Label
+var _pack_slots := {}          # "logs"/"parcels" -> Array of ColorRect
+var _pack_of: Resident = null
 
 const CHATTER_LINES := 6
 const CHATTER_FADE := 45.0     # real seconds a line stays in the chatter log
@@ -47,6 +53,8 @@ func _ready() -> void:
 	_build_cursor_tip()
 	_build_chatter()
 	_build_say_box()
+	_build_hint()
+	_build_pack()
 	Game.speed_changed.connect(func(_s: int) -> void: _refresh_speed())
 	_idle.offset_top = 62.0
 	_idle.offset_bottom = 86.0
@@ -233,7 +241,7 @@ func _refresh() -> void:
 	if ctrl == null and _say_box and _say_box.visible:
 		_close_say_box()
 	if ctrl:
-		_help.text = "You are %s. Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · F lies down in a bed or gets up · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
+		_help.text = "You are %s. F does what's at hand · Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
 	else:
 		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · [ ] game speed · V tiles · P routes"
 
@@ -242,6 +250,7 @@ func _process(_delta: float) -> void:
 	_update_clock()
 	_update_cursor_tip()
 	_update_chatter()
+	_update_hint(_delta)
 	for res in _cards:
 		var r := res as Resident
 		var t := "%s · %s\n%s · sleeps %s–%s" % [r.def.display_name, r.def.role, r.status(),
@@ -367,6 +376,98 @@ func _close_say_box() -> void:
 	_say_box.release_focus()
 	_say_box.visible = false
 	Game.typing = false
+
+
+# ---------- what F does here, and what you're carrying ----------
+
+func _build_hint() -> void:
+	_hint = Label.new()
+	_hint.anchor_left = 0.5
+	_hint.anchor_right = 0.5
+	_hint.anchor_top = 1.0
+	_hint.anchor_bottom = 1.0
+	_hint.offset_left = -260.0
+	_hint.offset_right = 260.0
+	_hint.offset_top = -128.0
+	_hint.offset_bottom = -100.0
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.add_theme_color_override("font_color", Color(1, 0.87, 0.6))
+	_hint.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	_hint.add_theme_font_size_override("font_size", 15)
+	add_child(_hint)
+
+
+func _update_hint(delta: float) -> void:
+	_hint_wait -= Game.real_delta(delta)
+	if _hint_wait > 0.0:
+		return
+	_hint_wait = 0.15
+	var h := _player.action_hint() if not Game.typing else ""
+	_hint.text = ("F · " + h) if h != "" and not h.ends_with("…") else h
+	_hint.visible = h != ""
+	var ctrl := _player.controlled
+	if ctrl != _pack_of:
+		if _pack_of and is_instance_valid(_pack_of) and _pack_of.packed.is_connected(_refresh_pack):
+			_pack_of.packed.disconnect(_refresh_pack)
+		_pack_of = ctrl
+		if ctrl:
+			ctrl.packed.connect(_refresh_pack)
+		_refresh_pack()
+
+
+func _build_pack() -> void:
+	_pack = PanelContainer.new()
+	_pack.add_theme_stylebox_override("panel", _panel_style())
+	_pack.anchor_left = 1.0
+	_pack.anchor_right = 1.0
+	_pack.anchor_top = 1.0
+	_pack.anchor_bottom = 1.0
+	_pack.offset_left = -236.0
+	_pack.offset_right = -16.0
+	_pack.offset_top = -176.0
+	_pack.offset_bottom = -94.0
+	_pack.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_pack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_pack)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	_pack.add_child(v)
+	_pack_title = Label.new()
+	_pack_title.add_theme_font_size_override("font_size", 13)
+	_pack_title.add_theme_color_override("font_color", Color(0.93, 0.91, 0.86))
+	v.add_child(_pack_title)
+	for kind in ["logs", "parcels"]:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 5)
+		v.add_child(row)
+		var l := Label.new()
+		l.text = kind.capitalize()
+		l.custom_minimum_size = Vector2(64, 0)
+		l.add_theme_font_size_override("font_size", 12)
+		l.add_theme_color_override("font_color", Color(0.75, 0.73, 0.68))
+		row.add_child(l)
+		var slots: Array = []
+		for i in Resident.PACK_CAP[kind]:
+			var c := ColorRect.new()
+			c.custom_minimum_size = Vector2(26, 14)
+			row.add_child(c)
+			slots.append(c)
+		_pack_slots[kind] = slots
+	_pack.visible = false
+
+
+func _refresh_pack() -> void:
+	var r := _pack_of
+	_pack.visible = r != null and is_instance_valid(r)
+	if not _pack.visible:
+		return
+	_pack_title.text = "%s's pack" % r.def.display_name
+	var full := {"logs": Look.html_hex(0x8a5a35), "parcels": Look.html_hex(0xc9a36a)}
+	for kind in _pack_slots:
+		var n: int = r.pack.get(kind, 0)
+		var slots: Array = _pack_slots[kind]
+		for i in slots.size():
+			(slots[i] as ColorRect).color = full[kind] if i < n else Color(1, 1, 1, 0.1)
 
 
 func _unhandled_input(event: InputEvent) -> void:

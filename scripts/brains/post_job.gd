@@ -1,9 +1,8 @@
 class_name PostJob
 extends Job
-## Bolt's rounds: collect the post from the pillar box outside Bolt Post, carry it to two of the
-## town's letterboxes (a parcel under his arm), post it, and run back for more.
+## Bolt's rounds: collect the post from the pillar box outside Bolt Post (two parcels, in his
+## arms: his pack), carry it to two of the town's letterboxes, post it, and run back for more.
 
-const PER_ROUND := 2
 const DELIVERED := ["Post!", "Delivered. Next!", "One for {house}.", "Signed, sealed, delivered.", "Mail's in."]
 const FAR := 60.0                      # letterboxes further than this from the post office come up less often
 
@@ -28,7 +27,12 @@ func start() -> void:
 			continue
 		for n in bld.find_children("Letterbox*", "Node3D", true, false):
 			_boxes.append({"node": n, "house": bld.def.display_name if bld.def else String(bld.name)})
-	_state = "to_office"
+	_round.clear()
+	if r.pack.parcels > 0:
+		_pick_round(r.pack.parcels)          # still has post from before: deliver it first
+		_state = "deliver"
+	else:
+		_state = "to_office"
 
 
 # where to stand to use a box: in front of its slot (the box's +Z)
@@ -60,21 +64,18 @@ func step(delta: float) -> bool:
 		"collect":
 			r.face_toward(_pillar.global_position)
 			if not waiting(delta):
-				_pick_round()
-				r.set_carry("parcel", _round.size())
-				r.pose = "carry"
+				r.pack_add("parcels", r.pack_room("parcels"))
+				_pick_round(r.pack.parcels)
 				_state = "deliver"
 		"deliver":
-			if _round.is_empty():
-				r.set_carry("", 0)
-				r.pose = ""
+			if _round.is_empty() or r.pack.parcels <= 0:
+				_round.clear()
 				_state = "to_office"
 				return true
 			var box: Dictionary = _round[0]
 			var p := _front(box.node)
 			if arrived(p, 0.45):
 				r.stop()
-				r.pose = ""
 				_state = "posting"
 				wait(1.2)
 			elif not go(p):
@@ -84,18 +85,17 @@ func step(delta: float) -> bool:
 			r.face_toward(box.node.global_position)
 			if not waiting(delta):
 				_round.pop_front()
+				r.pack_take("parcels")
 				say(DELIVERED.map(func(s: String) -> String: return s.replace("{house}", box.house)), 0.5)
-				r.set_carry("parcel" if not _round.is_empty() else "", _round.size())
-				r.pose = "carry" if not _round.is_empty() else ""
 				_state = "deliver"
 	return true
 
 
-# two different letterboxes, the far-flung ones less often
-func _pick_round() -> void:
+# different letterboxes, one per parcel, the far-flung ones less often
+func _pick_round(n: int) -> void:
 	_round.clear()
 	var pool := _boxes.duplicate()
-	while _round.size() < PER_ROUND and not pool.is_empty():
+	while _round.size() < n and not pool.is_empty():
 		var weights: Array[float] = []
 		var total := 0.0
 		for b in pool:

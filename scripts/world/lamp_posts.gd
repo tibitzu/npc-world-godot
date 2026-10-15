@@ -8,8 +8,8 @@ extends Node3D
 @export var spots: Array[Vector2] = [Vector2(4.0, 17.6), Vector2(4.0, 0.3), Vector2(-4.0, 0.3), Vector2(-4.0, 17.6)]
 
 const HEAD_Y := 2.45
-const OUT_FROM := 6.0              # local hour the lamps gutter out (until the evening)
-const OUT_TO := 17.0
+const OUT_FROM := 6.0              # the lamps gutter out in the hour after dawn (local time)
+const OUT_TO := 7.0
 
 var lamps: Array[Dictionary] = []  # {pos: Vector3, lit: bool, light: OmniLight3D, glass: MeshInstance3D}
 
@@ -123,7 +123,7 @@ func nearest_unlit(p: Vector3) -> int:
 
 
 func _process(_delta: float) -> void:
-	# lamps left burning gutter out once the day has come
+	# lamps left burning gutter out as the day comes (one lit by day burns until the next dawn)
 	for i in lamps.size():
 		if lamps[i].lit:
 			var h := Game.local_hours(lamps[i].pos.x)

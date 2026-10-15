@@ -56,7 +56,7 @@ func finish() -> void:
 	_goal = Vector3.INF
 	r.work_speed = 0.0
 	r.pose = ""
-	r.set_carry("", 0)
+	r.set_held("")
 	stop()
 
 

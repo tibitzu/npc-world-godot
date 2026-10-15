@@ -2,8 +2,8 @@ class_name PlayerController
 extends Node
 ## The local player: which resident they control (if any) and the keys that drive them.
 ## W/S walk, A/D step aside, Q/E or arrows turn, Left Shift runs, T switches view, Esc lets go,
-## F lies down in the bed at hand (or gets up). After IDLE_LIMIT seconds without input the
-## resident takes themselves back.
+## F lies down in the bed at hand (or gets up), or does the work at hand (see WorkActions).
+## After IDLE_LIMIT seconds without input the resident takes themselves back.
 
 
 signal control_changed(resident: Resident)
@@ -88,7 +88,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		if controlled.is_lying() or bed_at_hand():
 			controlled.toggle_bed(bed_at_hand())
 			touch()
+		elif not controlled.is_acting():
+			var a := WorkActions.find(controlled)
+			if not a.is_empty():
+				(a.run as Callable).call()
+				touch()
 		get_viewport().set_input_as_handled()
+
+
+## What F would do now (for the hint on screen), or "".
+func action_hint() -> String:
+	if controlled == null:
+		return ""
+	if controlled.is_acting():
+		return "Felling the tree…" if controlled.pose == "chop" else "Working the lamp…"
+	if controlled.is_lying():
+		return "Get up"
+	if bed_at_hand():
+		return "Lie down"
+	var a := WorkActions.find(controlled)
+	return a.label if not a.is_empty() else ""
 
 
 func _process(delta: float) -> void:

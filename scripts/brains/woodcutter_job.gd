@@ -2,10 +2,9 @@ class_name WoodcutterJob
 extends Job
 ## Brann's working day (as in the HTML game): pick one of the trees nearest his woodpile, walk
 ## up to it, chop (his axe over his head) until it falls ("Timber!"), gather the logs it leaves,
-## up to three on his back, carry them home and stack them on the pile. When the pile is full he
-## takes the rest of the day off.
+## up to three on his back (his pack), carry them home and stack them on the pile. When the pile
+## is full he takes the rest of the day off.
 
-const CARRY_MAX := 3
 const CHOP_TIME := 3.0
 const REACH := 0.8                     # how near a trunk he stands to chop (m)
 const PILE_STAND := Vector2(4.85, 0.4) # cabin-local x, z: beside the woodpile
@@ -17,13 +16,12 @@ var _forest: Forest
 var _state := "idle"
 var _tree := -1
 var _stand := Vector3.ZERO
-var _carry := 0
 var _log: Node3D = null
 var _since := 0.0                      # game seconds in this state
 
 
 func label() -> String:
-	return "Carrying logs" if _carry > 0 else "Felling trees"
+	return "Carrying logs" if r.pack.logs > 0 else "Felling trees"
 
 
 func start() -> void:
@@ -32,10 +30,6 @@ func start() -> void:
 	_forest = r.get_tree().get_first_node_in_group("forest") as Forest
 	_to("idle")
 	wait(2.0)
-
-
-func stop() -> void:
-	_carry = 0
 
 
 func _to(s: String) -> void:
@@ -55,7 +49,7 @@ func step(delta: float) -> bool:
 		"idle":
 			if waiting(delta):
 				return true
-			if _carry > 0:
+			if r.pack.logs > 0:
 				_to("haul")
 			elif _pile.is_full():
 				return false                       # nothing to do: the rest of the day is his own
@@ -77,7 +71,7 @@ func step(delta: float) -> bool:
 			elif Hex.distance(r.position, tp) < REACH + 0.45 and not r.has_goal():
 				r.stop()
 				_to("chop")
-				r.set_carry("axe", 1)
+				r.set_held("axe")
 			elif not go(_stand):
 				_to("idle")
 				wait(1.0)
@@ -86,7 +80,7 @@ func step(delta: float) -> bool:
 			r.pose = "chop"
 			if _since >= CHOP_TIME:
 				r.pose = ""
-				r.set_carry("", 0)
+				r.set_held("")
 				_forest.fell(_tree, r.position)
 				r.say("Timber!")
 				_to("wait_fall")
@@ -95,23 +89,22 @@ func step(delta: float) -> bool:
 				_to("collect")
 		"collect":
 			var tp: Vector3 = _forest.trees[_tree].pos
-			if _carry >= CARRY_MAX or _since > 40.0:
+			if r.pack_room("logs") <= 0 or _since > 40.0:
 				_to("haul")
 				return true
 			if _log == null or not is_instance_valid(_log):
 				_log = _forest.log_near(tp, 4.5)
 				if _log == null:
-					_to("haul" if _carry > 0 else "idle")
+					_to("haul" if r.pack.logs > 0 else "idle")
 					return true
 			if Hex.distance(r.position, _log.position) < 0.75:
 				_forest.take_log(_log)
 				_log = null
-				_carry += 1
-				r.set_carry("logs", _carry)
+				r.pack_add("logs")
 				r.stop()
 			elif not go(_log.position):
 				_log = null
-				_to("haul" if _carry > 0 else "idle")
+				_to("haul" if r.pack.logs > 0 else "idle")
 		"haul":
 			var ps := _pile_stand()
 			if arrived(ps, 0.5):
@@ -123,13 +116,10 @@ func step(delta: float) -> bool:
 			r.face_toward(_cabin.global_transform * Vector3(3.9, 0.0, PILE_STAND.y))
 			if _since >= 0.75:
 				_since = 0.0
-				if _carry > 0 and not _pile.is_full():
-					_carry -= 1
+				if r.pack.logs > 0 and not _pile.is_full():
+					r.pack_take("logs")
 					_pile.count += 1
-					r.set_carry("logs" if _carry > 0 else "", _carry)
 				else:
-					_carry = 0
-					r.set_carry("", 0)
 					say(STACKED)
 					_to("idle")
 					wait(randf_range(4.0, 9.0))
