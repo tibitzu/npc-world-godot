@@ -80,15 +80,15 @@ func bed_at_hand() -> Bed:
 	return best
 
 
-## B: everyone nobody is playing goes to bed; if they all already are, they all get up.
+## B: everyone nobody is playing goes to bed; if any of them already are, they all get up.
 func bedtime() -> void:
 	var others: Array[Resident] = []
 	for r in get_tree().get_nodes_in_group("residents"):
 		if r != controlled:
 			others.append(r)
-	var all_abed := others.all(func(r: Resident) -> bool: return r.bed != null)
+	var any_abed := others.any(func(r: Resident) -> bool: return r.bed != null)
 	for r in others:
-		if all_abed:
+		if any_abed:
 			r.get_up()
 		elif r.bed == null:
 			var free := get_tree().get_nodes_in_group("beds").filter(func(b: Bed) -> bool: return b.occupant == null)

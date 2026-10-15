@@ -75,7 +75,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
 shape = SubResource("Shape_body")
 
 [node name="Agent" type="NavigationAgent3D" parent="."]
-path_desired_distance = 0.1
+path_desired_distance = 0.3
 target_desired_distance = 0.06
 path_max_distance = 1.0
 height = 1.0

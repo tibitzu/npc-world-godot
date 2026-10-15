@@ -27,11 +27,11 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - After 30 seconds without input, Mira goes back to her own business (a countdown shows for the last 10).
 
 **Milestone 3, the tavern**
-- The Hex & Lantern stands north of the square, built as in the HTML game downstairs (bar, bottle shelves, barrels, fireplace, rug, a table with a candle) with a new upper floor: a stair up the east wall to three guest beds.
+- The Hex & Lantern stands north of the square: 7 × 5.2 m, twice the HTML game's floor area. Downstairs are the bar, bottle shelves, barrels, fireplace and rug, plus two tables with chairs; a stair up the east wall leads to an upper floor of six guest beds. Every walkway is wide enough for residents to pass easily (all seven of a test crowd reach a bed together in about 15 seconds).
 - Its door opens for anyone who comes near and closes behind them.
 - The tavern bakes its own navigation mesh from its walls, furniture, floors and stair when the game starts, and the open ground's mesh is carved away under it, so the two meet all round. Nothing is placed by hand: move a table in the editor and the routes go round it.
 - Residents' feet follow whatever is under them (floor, step or upper floor), so they walk up and down the stair like any other route.
-- Press **B** and every resident nobody is playing walks in, up the stairs and lies down in the nearest free bed; press **B** again and they all get up and go back out.
+- Press **B** and every resident nobody is playing walks in, up the stairs and lies down in the nearest free bed (as long as beds are free); press **B** again and they all get up and go back out.
 - Playing a resident, click any floor inside to walk there, and press **F** at the foot of a bed to lie down (or get up). Walking gets you out of bed too.
 - In third person inside, the roof fades away, and the upper floor too while you're downstairs, so you can see in. They keep their shadows, so the room stays dim.
 

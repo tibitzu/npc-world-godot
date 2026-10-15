@@ -8,4 +8,4 @@ script = ExtResource("1_def")
 id = "tavern"
 display_name = "The Hex & Lantern"
 scene = ExtResource("2_scene")
-position = Vector2(0, -3.4)
+position = Vector2(0, -4.2)
