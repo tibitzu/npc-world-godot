@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="NpcDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/npc_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "tilda"
+display_name = "Tilda"
+role = "Shopkeeper"
+colour = Color(0.827451, 0.607843, 0.227451, 1)
+start = Vector2(-9.0, 3.2)
+speed = 0.95
+wander_range = 3.0
+home_radius = 5.0
+lines = PackedStringArray("Fresh stock in. Well, fresh-ish.", "Everything has a price. Most things have two.", "Potions on the top shelf. Mind the fizzy one.", "Nobody ever buys the rope. One day.", "Counting the till. Again.", "If it fell out of a dungeon, I'll buy it.")
+sleep_hour = 22.0
+wake_hour = 7.0
+bed_lines = PackedStringArray("Shop's shut. Up to bed with me.", "Till's counted. Goodnight.")
+wake_lines = PackedStringArray("Morning! Shop's open.", "Kettle on, door unbarred. Open for business.")

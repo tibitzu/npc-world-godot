@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="NpcDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/npc_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "dax"
+display_name = "Dax"
+role = "Guard · day watch"
+colour = Color(0.658824, 0.207843, 0.184314, 1)
+start = Vector2(27.5, 8.3)
+speed = 1.15
+wander_range = 8.0
+home_radius = 20.0
+lines = PackedStringArray("All quiet on the east road.", "Dex is the other one. The less punctual one.", "Halt! ...Carry on.", "Square's secure. Road's secure. Moss is suspicious.", "I'm the handsome one.", "Twelve laps of the square and not a bandit in sight.")
+sleep_hour = 22.0
+wake_hour = 6.0
+bed_lines = PackedStringArray("Shift's over. Dex has the watch.", "Helmet off. Lights out.")
+wake_lines = PackedStringArray("Day watch, reporting.", "Morning. Dex, you're relieved.")

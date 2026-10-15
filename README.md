@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 6, homes and roads
+## Where it's up to: milestone 7, the residents move in
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -60,6 +60,22 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Every building except the post office has a wood-fired oven: a brick base with logs stored underneath and a clay dome with embers glowing in its mouth. The tavern's is in the kitchen corner.
 - Cobbled roads lead out of the square: straight ones west (along the general store's south wall, ending just past Rosehip Cottage) and east (past the barracks), and a curving one north round the tavern. Where the north road's cobbles stop it's still being laid (stones thinning out onto a sand bed, a pallet of cobbles, a sand pile and shovel, a wheelbarrow, a string line), and a dirt track carries on past Timber Hollow's front door. Every building faces a road or the square, with a letterbox by the road (the tavern's is on the square).
 - Beds belong to someone now: each home's bed is its owner's, and the tavern's are guest beds. At bedtime a resident goes to their own bed, or the nearest free guest bed if they haven't one. Mira lives by her cottage and sleeps there. Only Mira lives in town so far, so the other homes are empty.
+
+**Milestone 7, the residents move in**
+- Six more residents from the HTML game, each living in their own home with their own bed, sleeping hours and lines (`data/npcs/*.tres`):
+
+  | Resident | Role | Home | Sleeps |
+  |---|---|---|---|
+  | Mira | Gardener | Rosehip Cottage | 21:00–05:00 |
+  | Bolt | Courier (fast, roams 30 m round the post office) | Bolt Post | 23:00–06:00 |
+  | Old Fen | Lamplighter (slow, sleeps by day) | The Wick, upstairs | 08:00–16:00 |
+  | Brann | Lumberjack | Timber Hollow | 20:00–04:00 |
+  | Dax | Guard, day watch | The barracks | 22:00–06:00 |
+  | Dex | Guard, night watch | The barracks | 10:00–18:00 |
+  | Tilda | Shopkeeper (stays close to the store) | The general store, upstairs | 22:00–07:00 |
+
+- Each one strolls round their own front yard, goes home to their own bed at bedtime (saying goodnight) and gets up again in the morning. The twins split the day: Dex is asleep while Dax is up, and the other way round. Fen, the lamplighter, sleeps through the day in his tower and is out from late afternoon until morning.
+- Their cards are all down the right-hand side, showing what each is doing and when they sleep; click one (or the resident) to take them over.
 
 ### Coordinates
 
@@ -141,6 +157,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 7
+## Next: milestone 8
 
-The other residents move in: Bolt, Brann, Tilda, Dax and Dex from the HTML game, each with their own home, bed, sleeping hours and lines, filling the empty houses.
+Residents meet and talk: when two pass each other they stop, greet one another and reply, with each resident's greetings and replies from the HTML game.

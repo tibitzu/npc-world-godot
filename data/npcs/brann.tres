@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="NpcDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/npc_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "brann"
+display_name = "Brann"
+role = "Lumberjack"
+colour = Color(0.498039, 0.701961, 0.352941, 1)
+start = Vector2(-65.1, -65.2)
+speed = 1.0
+wander_range = 5.0
+home_radius = 8.0
+lines = PackedStringArray("Timber!", "Every log on that pile has a story. Mostly about splinters.", "Nothing beats the smell of fresh-cut pine.", "The woods go on a long way. Then they stop.", "Fetched water from the well this morning. Twice.", "Timber Hollow's fire is the warmest in town. Don't tell the tavern.")
+sleep_hour = 20.0
+wake_hour = 4.0
+bed_lines = PackedStringArray("Axe is down. So am I.", "Long day in the woods. Bed.")
+wake_lines = PackedStringArray("Up before the birds. Trees won't fell themselves.", "Mornin'. Back to the woods.")

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="NpcDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/npc_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "dex"
+display_name = "Dex"
+role = "Guard · night watch"
+colour = Color(0.658824, 0.207843, 0.184314, 1)
+start = Vector2(32.0, 8.2)
+speed = 1.15
+wander_range = 8.0
+home_radius = 20.0
+lines = PackedStringArray("Night watch. Best watch.", "Dax snores. I can hear it from the square.", "Quiet out there. Too quiet. No, it's fine.", "The lamps and me, we keep the dark honest.", "I'm the handsome one.", "Halt! Oh, it's you.")
+sleep_hour = 10.0
+wake_hour = 18.0
+bed_lines = PackedStringArray("Watch handed over. Wake me if there's a dragon.", "Sun's up. Guard's down.")
+wake_lines = PackedStringArray("Night watch, on duty.", "Evening. Dax, go to bed.")
