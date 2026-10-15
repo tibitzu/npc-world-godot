@@ -148,21 +148,34 @@ func _mark_tiles() -> void:
 
 
 func _bake_nav() -> void:
+	# The region is laid square to the world, whichever way the building faces, so its edge meets
+	# the hole carved in the world's mesh (nav_rect(), square to the world) exactly.
 	var nm := WorldNav.new_nav_mesh()
-	var area := _nav_local().grow(WorldNav.BORDER)
+	var area := nav_rect()
+	area.position -= Vector2(position.x, position.z)
+	area = area.grow(WorldNav.BORDER)
 	nm.filter_baking_aabb = AABB(Vector3(area.position.x, WorldNav.BAKE_Y0, area.position.y), Vector3(area.size.x, 12.0, area.size.y))
 	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nm.geometry_collision_mask = 1          # the "world" layer: walls, furniture, floors, stairs (not the door)
 	nm.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
 	var data := NavigationMeshSourceGeometryData3D.new()
 	NavigationServer3D.parse_source_geometry_data(nm, data, self)
-	# the open ground the building stands on, reaching past the bake area so its edges stay exact
-	var g := area.grow(1.0)
-	var c := [Vector3(g.position.x, 0, g.position.y), Vector3(g.end.x, 0, g.position.y),
-		Vector3(g.end.x, 0, g.end.y), Vector3(g.position.x, 0, g.end.y)]
+	# the open ground the building stands on, reaching well past the bake area (which clips it)
+	var h := area.grow(1.0).position.length() + area.grow(1.0).size.length()
+	var c := [Vector3(-h, 0, -h), Vector3(h, 0, -h), Vector3(h, 0, h), Vector3(-h, 0, h)]
 	data.add_faces(PackedVector3Array([c[0], c[1], c[2], c[0], c[2], c[3]]), global_transform)
+	# turn the parsed geometry (in the building's own axes) square to the world
+	var turn := Basis(Vector3.UP, rotation.y)
+	var v := data.get_vertices()
+	for k in range(0, v.size(), 3):
+		var q := turn * Vector3(v[k], v[k + 1], v[k + 2])
+		v[k] = q.x
+		v[k + 1] = q.y
+		v[k + 2] = q.z
+	data.set_vertices(v)
 	NavigationServer3D.bake_from_source_geometry_data(nm, data)
 	nav.navigation_mesh = nm
+	nav.rotation.y = -rotation.y
 	nav.position.y = -WorldNav.NAV_SINK
 
 

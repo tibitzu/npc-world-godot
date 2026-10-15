@@ -8,5 +8,5 @@ script = ExtResource("1_def")
 id = "cabin"
 display_name = "Timber Hollow"
 scene = ExtResource("2_scene")
-position = Vector2(-50, 14.3)
-rotation = 90.0
+position = Vector2(-68.2, -68.2)
+rotation = 24.0
