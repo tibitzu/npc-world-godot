@@ -2,7 +2,7 @@ class_name Roadworks
 extends Node3D
 ## Where a cobbled road is still being laid (Roads.works): the workers' things left at the end of
 ## the cobbles. A pallet of new stones and a sand pile with a shovel in it on one side, a
-## wheelbarrow and a ROAD WORKS sign on the other, a string line pegged out along the next stretch,
+## wheelbarrow on the other, a string line pegged out along the next stretch,
 ## a mallet and a kneeling board by the last stones, and a few stones dropped on the sand bed.
 ## The pallet, sand pile and barrow are solid, and are cut out of the walkable ground.
 
