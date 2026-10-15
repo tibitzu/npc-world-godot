@@ -1,11 +1,11 @@
 class_name NeedBars
 extends Control
-## Four little bars along the bottom of a resident's card: fatigue, happiness, hunger and thirst
-## (full is fine), in the HTML game's colours. Hover for the numbers.
+## Little bars along the bottom of a resident's card: health, then fatigue, happiness, hunger and
+## thirst (full is fine), in the HTML game's colours. Hover for the numbers.
 
-const KEYS := ["fatigue", "happiness", "hunger", "thirst"]
-const NAMES := ["Fatigue", "Happiness", "Hunger", "Thirst"]
-const COLOURS := [Color("#b9a6f0"), Color("#f2c86b"), Color("#e59a6a"), Color("#7fc4e8")]
+const KEYS := ["health", "fatigue", "happiness", "hunger", "thirst"]
+const NAMES := ["Health", "Fatigue", "Happiness", "Hunger", "Thirst"]
+const COLOURS := [Color("#e05a4f"), Color("#b9a6f0"), Color("#f2c86b"), Color("#e59a6a"), Color("#7fc4e8")]
 
 var resident: Resident
 var _shown := []
@@ -19,12 +19,12 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if resident == null:
 		return
-	var now := []
-	for k in KEYS:
+	var now := [roundi(resident.hp / resident.def.hp_max * 100.0)]
+	for k in KEYS.slice(1):
 		now.append(roundi(resident.needs[k]))
 	if now != _shown:
 		_shown = now
-		tooltip_text = "  ".join(range(4).map(func(i: int) -> String: return "%s %d" % [NAMES[i], now[i]]))
+		tooltip_text = "Health %d/%d  " % [roundi(resident.hp), roundi(resident.def.hp_max)] + "  ".join(range(1, 5).map(func(i: int) -> String: return "%s %d" % [NAMES[i], now[i]]))
 		queue_redraw()
 
 
@@ -32,8 +32,8 @@ func _draw() -> void:
 	if _shown.is_empty():
 		return
 	var gap := 5.0
-	var w := (size.x - gap * 3) / 4.0
-	for i in 4:
+	var w := (size.x - gap * 4) / 5.0
+	for i in 5:
 		var x := i * (w + gap)
 		draw_rect(Rect2(x, 0, w, size.y), Color(1, 1, 1, 0.12))
 		var v: float = _shown[i] / 100.0

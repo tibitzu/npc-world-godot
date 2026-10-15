@@ -31,3 +31,4 @@ trousers = 1842210
 shoes = "guardboots"
 extras = PackedStringArray("tabard", "bracers")
 plume = Color(0.9295, 0.8532, 0.6286, 1)
+hp_max = 140.0

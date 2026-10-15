@@ -26,3 +26,4 @@ tool = "trowel"
 trousers = 2829109
 shoes = "clogs"
 extras = PackedStringArray()
+hp_max = 90.0

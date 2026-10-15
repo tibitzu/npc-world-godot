@@ -52,6 +52,7 @@ func _ready() -> void:
 	_build_speed_bar()
 	_build_cursor_tip()
 	_build_chatter()
+	Events.town_event.connect(_on_event)
 	_build_say_box()
 	_build_hint()
 	_build_pack()
@@ -258,7 +259,7 @@ func _refresh() -> void:
 	if ctrl == null and _say_box and _say_box.visible:
 		_close_say_box()
 	if ctrl:
-		_help.text = "You are %s. F does what's at hand · Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
+		_help.text = "You are %s. F does what's at hand · Space strikes · Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
 	else:
 		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · [ ] game speed · V tiles · P routes"
 
@@ -274,6 +275,7 @@ func _process(_delta: float) -> void:
 			Game.clock_text(r.def.sleep_hour), Game.clock_text(r.def.wake_hour)]
 		if (_cards[res] as Button).text != t:
 			(_cards[res] as Button).text = t
+		(_cards[res] as Button).modulate.a = 0.5 if r.dead else 1.0
 	var ctrl := _player.controlled
 	var left := _player.idle_left() if ctrl else 99.0
 	_idle.visible = ctrl != null and left < 10.0
@@ -333,6 +335,21 @@ func _on_spoke(res: Resident, text: String) -> void:
 	while _chat_lines.size() > CHATTER_LINES:
 		(_chat_lines.pop_front()[0] as Node).queue_free()
 	_chatter.get_child(0).visible = true
+
+
+# news for everyone (a raid, a death): in the chatter, in grey
+func _on_event(text: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 13)
+	l.add_theme_color_override("font_color", Color(1.0, 0.75, 0.6))
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chatter.add_child(l)
+	_chat_lines.append([l, Time.get_ticks_msec() / 1000.0])
+	while _chat_lines.size() > CHATTER_LINES:
+		(_chat_lines.pop_front()[0] as Node).queue_free()
 
 
 func _update_chatter() -> void:

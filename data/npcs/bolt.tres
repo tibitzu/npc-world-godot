@@ -29,3 +29,4 @@ tool = ""
 trousers = 2829109
 shoes = "runshoes"
 extras = PackedStringArray()
+hp_max = 100.0

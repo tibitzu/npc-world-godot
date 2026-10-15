@@ -24,6 +24,12 @@ extends CharacterBody3D
 ## (their own, or the tavern's), dropping their work if it gets very low. Happiness slips
 ## slowly and comes back with company, food and drink. Worn out, they'll nap.
 ##
+## Health and fighting (as in the HTML game): each has health (def.hp_max) and fights with the
+## tool of their trade (Gear.WEAPONS). Raiding goblins go for anyone out of doors. The guards turn
+## out for any raider within 30 m, even from bed; anyone else hits back when attacked, and runs
+## for home when badly hurt. Health comes back slowly out of danger and quickly in bed. At none
+## they die: they lie where they fell and can't be played until a new game.
+##
 ## Work: a resident with a job (def.job, see scripts/brains) does it in their working hours; the
 ## job walks them about, sets their pose (chopping, carrying, reaching up with a pole) and what they
 ## carry (their pack, and set_held for a tool). Off duty they stroll as before, and now and then drop into the general store
@@ -46,7 +52,7 @@ const PACK_CAP := {"logs": 3, "parcels": 2}
 const NEED_LOW := 35.0             # off for a drink or a meal below this
 const NEED_URGENT := 15.0          # ...dropping their work below this
 ## How fast needs run down (points per game second): a day is 120 s; a night's sleep restores 100.
-const DRAIN := {"fatigue": 100.0 / 480.0, "hunger": 100.0 / 360.0, "thirst": 100.0 / 240.0, "happiness": 100.0 / 480.0}
+const DRAIN := {"fatigue": 100.0 / 480.0, "hunger": 100.0 / 360.0, "thirst": 100.0 / 240.0, "happiness": 100.0 / 960.0}
 const ASLEEP_DRAIN := 0.35         # hunger and thirst run down slower in bed
 const REST := 100.0 / 40.0
 const THIRSTY := ["Thirsty work. To the well!", "My throat's dry as dust.", "Water. Now."]
@@ -106,6 +112,17 @@ var _errand_face := Vector3.ZERO
 var _errand_tries := 0
 var _napping := false
 var _last_said := ""
+## Health, and whether they've died.
+var hp := 100.0
+var dead := false
+var _hurt_at := -99.0              # Game.world_time they were last hurt
+var _attacker: Node3D = null
+var _cool := 0.0                   # until they can strike again
+var _strike := 0.0                 # seconds into a blow (0: not striking)
+var _fighting := false
+var _fleeing := false
+const GUARD_RANGE := 30.0          # how far the guards turn out for a raider
+const TO_ARMS := ["To arms! Goblins!", "Raiders! Stay indoors!", "Here they come. Stay behind me."]
 ## Game time (Game.world_time) before which they won't pipe up on their own again.
 var next_speak := 0.0
 var _wp := 0                       # which point of it they're heading for
@@ -142,6 +159,7 @@ func _ready() -> void:
 	tag.modulate = Look.html_colour(def.colour).lightened(0.35)
 	_animate(0.0)
 	job = Job.make(self)
+	hp = def.hp_max
 	for k in needs:
 		needs[k] = randf_range(55.0, 100.0)    # so they don't all get thirsty at once
 	agent.path_changed.connect(func() -> void:
@@ -226,7 +244,7 @@ func say_later(text: String, delay: float) -> void:
 
 ## Is anything on their mind? Played, mid-sentence, waiting to speak, busy with bed, or at work.
 func is_busy() -> bool:
-	return controlled or _say_left > 0.0 or not _queued.is_empty() or bed != null or _lying or _lie > 0.0 or _job_active or _errand != ""
+	return dead or _fighting or _fleeing or controlled or _say_left > 0.0 or not _queued.is_empty() or bed != null or _lying or _lie > 0.0 or _job_active or _errand != ""
 
 
 ## Turn to face a spot while standing still (a job calls this each frame it wants it).
@@ -390,6 +408,12 @@ func sleep_time() -> bool:
 
 ## What they're doing, for the roster.
 func status() -> String:
+	if dead:
+		return "Dead"
+	if _fighting:
+		return "Fighting"
+	if _fleeing:
+		return "Running for home"
 	if controlled:
 		return "Played by you"
 	if _lying or _lie > 0.0:
@@ -443,7 +467,17 @@ func _retarget() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if dead:
+		if _say_left > 0.0:
+			_say_left -= Game.real_delta(delta)
+			_say.visible = _say_left > 0.0
+		return
 	_drain_needs(delta)
+	_cool = maxf(0.0, _cool - delta)
+	# a guard asleep with raiders about gets up
+	if not controlled and _is_guard() and (_lying or _lie > 0.0) and _lying and _nearest_raider(GUARD_RANGE) != null:
+		get_up()
+		say(pick_fresh(TO_ARMS))
 	if _say_left > 0.0:
 		_say_left -= Game.real_delta(delta)
 		_say.visible = _say_left > 0.0 and tag.visible
@@ -468,7 +502,10 @@ func _physics_process(delta: float) -> void:
 			if _action_left <= 0.0:
 				_end_action(true)
 	_job_active = false
-	if not controlled:
+	if not controlled and _combat_step(delta):
+		if job and job.working:
+			job.finish()
+	elif not controlled:
 		# an errand under way is finished first; a very urgent need takes them off work
 		var urgent: bool = needs.thirst < NEED_URGENT or needs.hunger < NEED_URGENT
 		if (urgent or _errand != "") and job and job.working:
@@ -638,7 +675,7 @@ func _bed_pose(delta: float) -> void:
 
 # the day job, when it's working hours and not bedtime; true while it's directing them
 func _job_step(delta: float) -> bool:
-	if job == null:
+	if job == null or dead:
 		return false
 	if bed != null or _lying or _lie > 0.0 or sleep_time() or _bedtime_soon():
 		if job.working:
@@ -647,19 +684,169 @@ func _job_step(delta: float) -> bool:
 	return job.tick(delta)
 
 
+# ---------- health and fighting ----------
+
+func _is_guard() -> bool:
+	return def.job == "patrol"
+
+
+## Their weapon: the tool of their trade (or fists).
+func weapon() -> Dictionary:
+	return Gear.WEAPONS.get(def.tool, Gear.WEAPONS[""])
+
+
+## Struck (by a goblin): lose health; at none, they die.
+func hurt(dmg: int, by: Node3D) -> void:
+	if dead:
+		return
+	hp = maxf(0.0, hp - dmg)
+	_hurt_at = Game.world_time
+	_attacker = by
+	FloatText.pop(get_parent(), global_position + Vector3.UP * 2.1, str(dmg), Color(1, 0.4, 0.35))
+	if hp <= 0.0:
+		_die()
+
+
+func _die() -> void:
+	dead = true
+	hp = 0.0
+	Events.town_event.emit("%s was slain by a goblin." % def.display_name)
+	if controlled:
+		var p := get_tree().get_first_node_in_group("player") as PlayerController
+		if p:
+			p.let_go()
+	if job and job.working:
+		job.finish()
+	_goal = null
+	_errand = ""
+	_fighting = false
+	_fleeing = false
+	_end_action(false)
+	if _lying or _lie > 0.0:
+		_lying = false
+		_lie = 0.0
+	_release_bed()
+	_vel = Vector2.ZERO
+	velocity = Vector3.ZERO
+	moving = false
+	_collision.disabled = true
+	# fallen on their back where they stood
+	body.quaternion = Quaternion(Vector3.UP, heading) * Quaternion(Vector3.RIGHT, -PI / 2)
+	position.y += 0.2
+	tag.text = def.display_name.to_upper() + " (DEAD)"
+	tag.modulate = Color(0.6, 0.6, 0.6)
+	_say.visible = false
+
+
+## A blow at whatever goblin is in front of them and within reach (Space, while playing them).
+func strike() -> void:
+	if dead or _cool > 0.0 or _lying or _lie > 0.0:
+		return
+	var w := weapon()
+	_cool = w.cd
+	_strike = 0.001
+	var fwd := Vector3(sin(heading), 0, cos(heading))
+	var best: Monster = null
+	var bd: float = w.reach + 0.3
+	for m in get_tree().get_nodes_in_group("monsters"):
+		var mo := m as Monster
+		if mo.dead:
+			continue
+		var to := Hex.offset(position, mo.position)
+		var d := to.length()
+		if d < bd and (d < 0.6 or fwd.dot(to / d) > 0.2):
+			bd = d
+			best = mo
+	if best:
+		best.hurt(randi_range(w.dmg.x, w.dmg.y), self)
+
+
+func _nearest_raider(within: float) -> Monster:
+	var best: Monster = null
+	var bd := within
+	for m in get_tree().get_nodes_in_group("monsters"):
+		var mo := m as Monster
+		if not mo.is_raiding() or absf(mo.position.y - position.y) > 1.0:
+			continue
+		var d := Hex.distance(position, mo.position)
+		if d < bd:
+			bd = d
+			best = mo
+	return best
+
+
+# fighting (or running away), for a resident nobody is playing; true while it has them
+func _combat_step(_delta: float) -> bool:
+	var foe: Monster = null
+	if _is_guard():
+		foe = _nearest_raider(GUARD_RANGE)
+	else:
+		# hit back at whoever's hitting them (or squares up to them)
+		var near := _nearest_raider(4.0)
+		if near and near.target == self:
+			foe = near
+		elif _attacker is Monster and not (_attacker as Monster).dead and Game.world_time - _hurt_at < 4.0 \
+				and Hex.distance(position, _attacker.position) < 6.0:
+			foe = _attacker
+	if _fleeing:
+		if foe == null or bed != null or _goal == null:
+			_fleeing = false
+		else:
+			return true
+	if foe == null:
+		if _fighting:
+			_fighting = false
+			_goal = null
+			_timer = 1.0
+		return false
+	if not _is_guard() and hp < def.hp_max * 0.35:
+		# badly hurt: run for home
+		var b := _nearest_free_bed()
+		if b:
+			_fighting = false
+			_fleeing = true
+			_set_goal(_snap(b.stand_point()))
+			say("Help! Help!")
+			return true
+	if not _fighting:
+		_fighting = true
+		if _is_guard():
+			say(pick_fresh(TO_ARMS))
+	var w := weapon()
+	var d := Hex.distance(position, foe.position)
+	if d > w.reach * 0.85:
+		if _goal == null or Hex.distance(_goal, foe.position) > 0.8:
+			_set_goal(foe.position)
+	else:
+		_goal = null
+		var to := Hex.offset(position, foe.position)
+		heading = lerp_angle(heading, atan2(to.x, to.z), 0.3)
+		if _cool <= 0.0:
+			_cool = w.cd
+			_strike = 0.001
+			foe.hurt(randi_range(w.dmg.x, w.dmg.y), self)
+	return true
+
+
 ## Cheer up (talking, eating, drinking).
 func cheer(points: float) -> void:
 	needs.happiness = minf(100.0, needs.happiness + points)
 
 
 func _drain_needs(delta: float) -> void:
+	# health comes back slowly out of danger, and quickly in bed
+	if hp < def.hp_max:
+		var rate := 3.0 if (_lying and _lie >= 1.0) else (0.4 if Game.world_time - _hurt_at > 12.0 else 0.0)
+		hp = minf(def.hp_max, hp + rate * delta)
 	if _lying and _lie >= 1.0:
 		needs.fatigue = minf(100.0, needs.fatigue + REST * delta)
 	else:
 		needs.fatigue = maxf(0.0, needs.fatigue - DRAIN.fatigue * delta * (1.5 if _job_active else 1.0))
 	var asleep := _lying and _lie >= 1.0
-	for k in ["hunger", "thirst", "happiness"]:
-		needs[k] = maxf(0.0, needs[k] - DRAIN[k] * delta * (ASLEEP_DRAIN if asleep and k != "happiness" else 1.0))
+	for k in ["hunger", "thirst"]:
+		needs[k] = maxf(0.0, needs[k] - DRAIN[k] * delta * (ASLEEP_DRAIN if asleep else 1.0))
+	# a good night's sleep lifts the spirits a little
+	needs.happiness = clampf(needs.happiness + (0.25 if asleep else -DRAIN.happiness) * delta, 0.0, 100.0)
 
 
 # off for a drink or a meal when one runs low; true while seeing to it
@@ -783,6 +970,8 @@ func _bedtime_soon() -> bool:
 
 # bedtime and morning, for a resident nobody is playing
 func _routine(delta: float) -> void:
+	if _fighting or _fleeing or (_is_guard() and _nearest_raider(GUARD_RANGE) != null):
+		return                                   # no going to bed with goblins about
 	# worn out: a nap, whatever the time, until they're rested
 	if needs.fatigue < 12.0 and not _napping:
 		_napping = true
@@ -911,4 +1100,11 @@ func _animate(delta: float) -> void:
 		var held := _arm_r.get_node_or_null("Carry") as Node3D
 		if held:
 			held.rotation.x = PI if pose == "light" else -_arm_r.rotation.x
+	if _strike > 0.0:
+		# a quick blow with the weapon arm (a punch, bare-handed)
+		_strike += delta
+		var k := clampf(_strike / 0.35, 0.0, 1.0)
+		_arm_r.rotation.x = (-1.6 if def.tool == "" else -2.4) * sin(k * PI)
+		if k >= 1.0:
+			_strike = 0.0
 	_mouth.scale.y = 1.0 + 3.0 * absf(sin(Time.get_ticks_msec() * 0.018)) if _talk_left > 0.0 else 1.0

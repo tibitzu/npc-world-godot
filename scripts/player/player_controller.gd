@@ -23,6 +23,9 @@ func now() -> float:
 func possess(r: Resident) -> void:
 	if r == controlled or r == null:
 		return
+	if r.dead:
+		Events.town_event.emit("%s is dead. A new game will bring them back." % r.def.display_name)
+		return
 	if controlled:
 		controlled.release()
 	controlled = r
@@ -83,6 +86,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("let_go"):
 		let_go()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("attack"):
+		controlled.strike()
+		touch()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("interact"):
 		if controlled.is_lying() or bed_at_hand():

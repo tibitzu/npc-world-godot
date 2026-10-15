@@ -12,6 +12,15 @@ const HEAD_DROP := 0.07
 
 const HATS := ["strawhat", "couriercap", "tophat", "beanie", "headscarf", "guardhelm"]
 const TOOLS := ["trowel", "lanternpole", "fellingaxe", "guardspear", "cudgel"]
+## What each tool does as a weapon: damage per hit (low, high), reach (m) and seconds between blows.
+const WEAPONS := {
+	"": {"name": "Fists", "dmg": Vector2i(2, 4), "reach": 1.5, "cd": 0.6},
+	"trowel": {"name": "Trowel", "dmg": Vector2i(2, 4), "reach": 1.6, "cd": 0.8},
+	"lanternpole": {"name": "Lantern pole", "dmg": Vector2i(2, 5), "reach": 2.1, "cd": 1.0},
+	"fellingaxe": {"name": "Felling axe", "dmg": Vector2i(5, 9), "reach": 1.8, "cd": 1.2},
+	"guardspear": {"name": "Spear", "dmg": Vector2i(5, 9), "reach": 2.5, "cd": 1.0},
+	"cudgel": {"name": "Cudgel", "dmg": Vector2i(3, 6), "reach": 1.6, "cd": 0.9},
+}
 const SHOE_COLOURS := {"clogs": 0xb08a4a, "runshoes": 0xe6e2da, "buckleshoes": 0x24222b, "workboots": 0x5a3a22, "guardboots": 0x2a1d14}
 
 

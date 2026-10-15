@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 12, needs
+## Where it's up to: milestone 13, health and danger
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -141,6 +141,16 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Playing someone, F at the well has a drink and F in front of an oven has a meal.
 - Fixed on the way: street lamps (and trees) standing inside a building's walkable area were walked straight through; buildings now leave them out of their own navigation meshes (`blocker_rects()` on the Forest, LampPosts and Well).
 
+**Milestone 13, health and danger**
+- **Health**: every resident has health (Mira 90, Bolt 100, Fen 70, Brann 120, the twins 140, Tilda 80, as in the HTML game), the first bar on their card. It comes back slowly once they're out of danger and quickly in bed.
+- **Weapons**: they fight with the tool of their trade: Mira's trowel, Fen's lantern pole, Brann's felling axe, the guards' spears (the longest reach), Tilda's cudgel, and Bolt's fists. Damage numbers pop up over whoever's hit.
+- **Goblins**: a camp of five in the hills north-east of town (tents round a fire, at about x 46, z -30). Every few nights (the first on the second night) four of them march on the town at dusk, prowl it for anyone out of doors (a closed door keeps them out; those in bed are safe) and go home at dawn. A badly hurt goblin runs for it; the camp patches them up and makes its numbers up again each noon.
+- **The guards** turn out for any raider within 30 m, even from their beds ("To arms! Goblins!"); anyone else hits back when attacked, and runs for home when badly hurt ("Help! Help!"). The cards say Fighting or Running for home, and the town chatter tells you when a raid starts and ends.
+- **Fighting yourself**: while playing someone, **Space** strikes at the goblin in front of you.
+- **Death**: at no health a resident dies. They lie where they fell, their card greys out, and they can't be played until a new game.
+- Happiness now slips more slowly, and a good night's sleep lifts it a little.
+- The goblins are `scripts/actors/monster.gd`, their camp and the raids `scripts/world/goblin_camp.gd`; residents' fighting is in `scripts/actors/resident.gd`, the weapons in `Gear.WEAPONS`.
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -173,6 +183,7 @@ A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is eas
 | Walk somewhere inside | Click the floor |
 | Lie down / get up, or the work at hand | F (the hint on screen says what it'll do) |
 | Say something | Enter, type, Enter (Esc cancels) |
+| Strike (at a goblin in front) | Space |
 | First / third person | Scroll, T, or the button |
 | Let go | Esc, the Let go button, or click their card |
 
@@ -222,6 +233,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 13
+## Next: milestone 14
 
-Health and danger, from the HTML game: each resident's health and weapon, monsters that roam the woods at night and now and then raid the town, the guards turning out to meet them, and fighting back when you're playing someone.
+The bell and the goblins' lair: the guard on watch rings a bell on the square when a raid comes and everyone hurries indoors; and a way down from the goblin camp into a warren of tunnels where the band keeps its chief, for a resident to fight through and end the raids, as in the HTML game's dungeons.

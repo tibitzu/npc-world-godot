@@ -54,3 +54,6 @@ extends Resource
 @export var shoes := ""
 @export var extras: PackedStringArray = []
 @export var plume := Color(0.79, 0.19, 0.17)
+
+## Health when unhurt (as in the HTML game).
+@export var hp_max := 100.0
