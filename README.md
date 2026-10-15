@@ -57,7 +57,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
   - **The barracks**: grey stone with battlements, a flag and crimson banners; a bed each for Dax and Dex, a shield and spears, a table and stools, footlockers and a weapon rack; a training dummy outside.
   - **The general store**, facing the square from its western edge, just north of the west road: two storeys of timber-framed plaster; the shop downstairs (counter, shelves of goods, barrels, a display table, tools) and a stair up to Tilda's rooms (bed, wardrobe, table, rug, chest).
 - Every building except the post office has a wood-fired oven: a brick base with logs stored underneath and a clay dome with embers glowing in its mouth. The tavern's is in the kitchen corner.
-- Cobbled roads curve out of the square to the west, east and north, and every building faces one, with a letterbox by the road (the tavern's is on the square).
+- Cobbled roads lead out of the square: a straight one west along the general store's south wall, ending just past Rosehip Cottage, and curving ones east and north. Every building faces a road or the square, with a letterbox by the road (the tavern's is on the square).
 - Beds belong to someone now: each home's bed is its owner's, and the tavern's are guest beds. At bedtime a resident goes to their own bed, or the nearest free guest bed if they haven't one. Mira lives by her cottage and sleeps there. Only Mira lives in town so far, so the other homes are empty.
 
 ### Controls (overview camera)

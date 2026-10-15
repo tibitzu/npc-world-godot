@@ -8,5 +8,5 @@ script = ExtResource("1_def")
 id = "cottage"
 display_name = "Rosehip Cottage"
 scene = ExtResource("2_scene")
-position = Vector2(-33, 11.9)
+position = Vector2(-33, 13.7)
 rotation = 180.0

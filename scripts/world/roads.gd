@@ -12,8 +12,8 @@ const STEP := 0.4                  # metres between points along a curve
 
 ## Each road's points, from the square outward.
 @export var paths: Array[PackedVector2Array] = [
-	# west: past the general store to Rosehip Cottage and on
-	PackedVector2Array([Vector2(-8.0, 9.0), Vector2(-14.0, 9.2), Vector2(-21.0, 8.4), Vector2(-28.0, 6.6), Vector2(-36.0, 6.0), Vector2(-44.0, 7.6), Vector2(-50.0, 10.5)]),
+	# west: straight out of the square along the general store's south wall, ending just past Rosehip Cottage
+	PackedVector2Array([Vector2(-8.0, 8.1), Vector2(-38.0, 8.1)]),
 	# east: past the post office to the barracks and on
 	PackedVector2Array([Vector2(8.0, 9.0), Vector2(14.0, 9.4), Vector2(21.0, 10.4), Vector2(28.0, 11.8), Vector2(36.0, 11.4), Vector2(44.0, 9.0), Vector2(50.0, 6.0)]),
 	# north: from the square past the tavern's east side, by Timber Hollow and into the woods
