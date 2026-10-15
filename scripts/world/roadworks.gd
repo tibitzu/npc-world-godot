@@ -4,7 +4,7 @@ extends Node3D
 ## the cobbles. A pallet of new stones and a sand pile with a shovel in it on one side, a
 ## wheelbarrow and a ROAD WORKS sign on the other, a string line pegged out along the next stretch,
 ## a mallet and a kneeling board by the last stones, and a few stones dropped on the sand bed.
-## The pallet, sand pile, barrow and sign are solid, and are cut out of the walkable ground.
+## The pallet, sand pile and barrow are solid, and are cut out of the walkable ground.
 
 const STONE := Color("#8a8c90")
 const WOOD := Color("#9a7448")
@@ -13,8 +13,6 @@ const SAND := Color("#c9ad7c")
 const STEEL := Color("#7f868c")
 const BARROW := Color("#4f6b4a")
 const RUBBER := Color("#2a2a2a")
-const SIGN_RED := Color("#b8322a")
-const SIGN_WHITE := Color("#f1ece0")
 const STRING := Color("#e8d27a")
 
 var _mats := {}
@@ -65,7 +63,7 @@ func _build(nav: WorldNav) -> void:
 	_mesh("Bucket", _cyl(0.15, 0.12, 0.3), STEEL, Vector3(px + 0.75, 0.15, pz - 0.65))
 	_mesh("Water", _cyl(0.135, 0.135, 0.01), Color("#5d6f7c"), Vector3(px + 0.75, 0.27, pz - 0.65))
 
-	# ---- the other side: a wheelbarrow with a few stones in it, and the sign ----
+	# ---- the other side: a wheelbarrow with a few stones in it ----
 	var barrow := _node("Wheelbarrow", Vector3(-2.45, 0.0, 0.5), 0.35)
 	_box("Tray", Vector3(0.62, 0.28, 0.8), BARROW, Vector3(0, 0.52, 0), 0.0, barrow)
 	_box("TrayLip", Vector3(0.68, 0.04, 0.86), BARROW.darkened(0.2), Vector3(0, 0.67, 0), 0.0, barrow)
@@ -78,24 +76,6 @@ func _build(nav: WorldNav) -> void:
 		arm.rotation.x = -0.22
 		_box("Leg", Vector3(0.04, 0.38, 0.04), DARK_WOOD, Vector3(s * 0.22, 0.19, -0.3), 0.0, barrow)
 	_solid(Vector3(0.75, 0.8, 1.45), Vector3(-2.45, 0.4, 0.4), nav, 0.35)
-	var sign_node := _node("RoadWorksSign", Vector3(-2.2, 0.0, -2.6), 0.0)
-	for s: int in [-1, 1]:
-		var board := _box("Board", Vector3(0.7, 0.85, 0.03), SIGN_WHITE, Vector3(0, 0.42, s * 0.16), 0.0, sign_node)
-		board.rotation.x = s * 0.2
-		var band := _box("Band", Vector3(0.72, 0.16, 0.035), SIGN_RED, Vector3(0, 0.74, s * 0.16), 0.0, sign_node)
-		band.rotation.x = s * 0.2
-	var face := Label3D.new()
-	face.name = "Face"
-	face.text = "ROAD\nWORKS"
-	face.font_size = 64
-	face.pixel_size = 0.0035
-	face.modulate = Color("#2a2a2a")
-	face.outline_size = 0
-	face.double_sided = false
-	face.position = Vector3(0, 0.4, -0.185)
-	face.rotation = Vector3(0.2, PI, 0)
-	sign_node.add_child(face)
-	_solid(Vector3(0.75, 0.9, 0.5), Vector3(-2.2, 0.45, -2.6), nav)
 
 	# ---- on the road: the string line pegged out along the next stretch ----
 	for s: int in [-1, 1]:
