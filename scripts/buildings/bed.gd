@@ -3,8 +3,13 @@ extends Node3D
 ## A bed a resident can lie on. Place this node at the middle of the mattress, on top of it,
 ## with its -Z pointing toward the head of the bed; the bed's meshes go underneath it.
 ## Residents walk to the foot of the bed (stand_point) and lie down from there.
+##
+## A bed with an owner_id (a resident's id) is theirs: only they sleep in it. A bed with no
+## owner (the tavern's) is a guest bed anyone can use.
 
 @export var bed_name := "Bed"
+## The id of the resident whose bed this is, or empty for a guest bed.
+@export var owner_id := ""
 ## Length of the mattress (m).
 @export var length := 1.9
 ## Height of the top of the mattress above the floor (m).
@@ -19,6 +24,8 @@ func _ready() -> void:
 
 
 func is_free_for(r: Resident) -> bool:
+	if owner_id != "" and r and r.def and r.def.id != owner_id:
+		return false
 	return occupant == null or occupant == r or not is_instance_valid(occupant)
 
 

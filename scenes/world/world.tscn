@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/world/markers.gd" id="7_markers"]
 [ext_resource type="Script" path="res://scripts/world/town_square.gd" id="8_square"]
 [ext_resource type="Script" path="res://scripts/world/day_night.gd" id="9_daynight"]
+[ext_resource type="Script" path="res://scripts/world/roads.gd" id="10_roads"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -41,6 +42,9 @@ directional_shadow_max_distance = 40.0
 
 [node name="Ground" type="MeshInstance3D" parent="."]
 script = ExtResource("2_ground")
+
+[node name="Roads" type="MeshInstance3D" parent="."]
+script = ExtResource("10_roads")
 
 [node name="TownSquare" type="MeshInstance3D" parent="."]
 script = ExtResource("8_square")

@@ -7,7 +7,8 @@ extends Resource
 @export var display_name := ""
 @export var role := ""
 @export var colour := Color.WHITE
-## Where they stand when a new game starts (world x, z in metres).
+## Where they stand when a new game starts, and the spot they stroll around: their home's front
+## yard (world x, z in metres).
 @export var start := Vector2.ZERO
 ## Walking speed when they move on their own (m/s). Played residents walk at 2.3 m/s.
 @export var speed := 1.0

@@ -13,7 +13,7 @@ func _ready() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(size, size)
 	mesh = plane
-	position = Vector3(centre.x, 0.006, centre.y)
+	position = Vector3(centre.x, 0.008, centre.y)     # just above the roads that run out from under it
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var mat := ShaderMaterial.new()
 	mat.shader = preload("res://shaders/cobbles.gdshader")

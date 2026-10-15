@@ -12,7 +12,7 @@ extends CharacterBody3D
 ## there until they get up (get_up), are played, or are sent somewhere else.
 ##
 ## Daily routine: while nobody is playing them, at their sleep hour (local time) they say one of
-## their bedtime lines and go to the nearest free bed, and at their wake hour they get up, say a
+## their bedtime lines and go to bed: their own if they have one, otherwise the nearest free guest bed, and at their wake hour they get up, say a
 ## morning line and carry on with their day.
 
 signal arrived
@@ -379,12 +379,16 @@ func _routine(delta: float) -> void:
 			_timer = 1.0
 
 
+# their own bed if they have one, otherwise the nearest free guest bed
 func _nearest_free_bed() -> Bed:
+	for b in get_tree().get_nodes_in_group("beds"):
+		if (b as Bed).owner_id == def.id and (b as Bed).is_free_for(self):
+			return b
 	var best: Bed = null
 	var bd := INF
 	for b in get_tree().get_nodes_in_group("beds"):
 		var bed_node := b as Bed
-		if not bed_node.is_free_for(self):
+		if bed_node.owner_id != "" or not bed_node.is_free_for(self):
 			continue
 		var d := Hex.distance(position, bed_node.stand_point())
 		if d < bd:

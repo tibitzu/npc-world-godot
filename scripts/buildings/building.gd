@@ -32,6 +32,9 @@ extends Node3D
 @export var wall_height := 4.35
 ## How far round the outside the building's own navigation mesh reaches.
 @export var apron := 1.0
+## Or, instead, exactly the area (local x, z) its navigation mesh covers: for a building with a
+## garden or a yard (fences, a letterbox) that should be walked round, not through.
+@export var nav_area := Rect2()
 ## What the tiles under the building are called (shown in the top left).
 @export var tile_kind := "building"
 
@@ -68,7 +71,12 @@ func _ready() -> void:
 ## The area of the map this building's navigation mesh covers (world x, z): every part plus
 ## the apron, as an axis-aligned rectangle.
 func nav_rect() -> Rect2:
-	return _world_rect(_bounds().grow(apron))
+	return _world_rect(_nav_local())
+
+
+# the area (local x, z) this building's navigation mesh covers
+func _nav_local() -> Rect2:
+	return nav_area if nav_area.has_area() else _bounds().grow(apron)
 
 
 ## Is a world point inside the walls (any part, any storey)?
@@ -141,7 +149,7 @@ func _mark_tiles() -> void:
 
 func _bake_nav() -> void:
 	var nm := WorldNav.new_nav_mesh()
-	var area := _bounds().grow(apron + WorldNav.BORDER)
+	var area := _nav_local().grow(WorldNav.BORDER)
 	nm.filter_baking_aabb = AABB(Vector3(area.position.x, WorldNav.BAKE_Y0, area.position.y), Vector3(area.size.x, 12.0, area.size.y))
 	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nm.geometry_collision_mask = 1          # the "world" layer: walls, furniture, floors, stairs (not the door)

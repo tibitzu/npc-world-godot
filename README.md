@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 5, daily routines
+## Where it's up to: milestone 6, homes and roads
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -48,6 +48,17 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Lines appear in a bubble above the speaker's name for a few seconds.
 - Each card in the top right now shows what the resident is doing (Walking, Going to bed, Asleep, Played by you) and their sleeping hours.
 - The **B** shortcut from milestone 3 is gone: the routines do its job.
+
+**Milestone 6, homes and roads**
+- Five more buildings from the HTML game, built larger so 1.5 m residents fit (2 m doors, 1.9 m beds, at least 0.6 m of floor wherever residents walk):
+  - **Rosehip Cottage**, Mira's: whitewash and thatch, green door and shutters with flower boxes; her bed under a patchwork quilt, a table and chairs, a dresser, herbs drying from a beam. Its fenced garden is bigger than in the HTML game and freshly dug into furrows, with nothing planted yet.
+  - **Bolt Post**, the post office: blue boards, a flat roof with an aerial, a roller door; pigeonholes of parcels, a counter with a bell and scale, mail sacks, Bolt's cot under a map of the town. Its red pillar box is the letterbox.
+  - **Timber Hollow**, Brann's log cabin: stacked log walls, a shingle roof and a stone chimney; his bed, a table and bench, a chair on a bearskin rug, an axe rack; the woodpile's sleepers and a chopping block outside.
+  - **The barracks**: grey stone with battlements, a flag and crimson banners; a bed each for Dax and Dex, a shield and spears, a table and stools, footlockers and a weapon rack; a training dummy outside.
+  - **The general store**: two storeys of timber-framed plaster; the shop downstairs (counter, shelves of goods, barrels, a display table, tools) and a stair up to Tilda's rooms (bed, wardrobe, table, rug, chest).
+- Every building except the post office has a wood-fired oven: a brick base with logs stored underneath and a clay dome with embers glowing in its mouth. The tavern's is in the kitchen corner.
+- Cobbled roads curve out of the square to the west, east and north, and every building faces one, with a letterbox by the road (the tavern's is on the square).
+- Beds belong to someone now: each home's bed is its owner's, and the tavern's are guest beds. At bedtime a resident goes to their own bed, or the nearest free guest bed if they haven't one. Mira lives by her cottage and sleeps there. Only Mira lives in town so far, so the other homes are empty.
 
 ### Controls (overview camera)
 
@@ -93,13 +104,14 @@ tools/      editor and test helpers
 - `scripts/world/hex.gd` holds the hex grid and wrap maths, ported from the HTML game: which tile a point is on, neighbours, and the shortest distance across the seams. Everything that measures distance goes through it.
 - `scripts/world/tile_grid.gd` keeps each tile's flags, kind and colour in packed arrays, plus a texture the ground shader reads.
 - `autoload/game.gd` keeps the clock: game time, the speed, local time at any east–west position, the day number. `scripts/world/day_night.gd` sets the sun, sky light, lamps and windows from it each frame.
+- `scripts/world/roads.gd` draws the roads: each is a smooth curve through a few points, listed in the Roads node in the world scene, so adding or bending a road is a matter of editing those points.
 - `scripts/world/town_square.gd` lays the cobbled square (its size and centre are settings on the TownSquare node in the world scene); `shaders/cobbles.gdshader` draws the stones and the kerb round the edge.
 - The ground is one plane that follows the camera; its shader folds every point back onto the map, which is what makes the wrap seamless.
 - `scripts/world/world_nav.gd` covers the map with navigation mesh in a 12 × 10 grid of chunks. The chunks along each edge also get a copy just past the opposite edge, so routes run straight across the seam; a resident who steps over it is moved back by one world width. A building carves its area out, and only the chunks it touches are baked again (about a tenth of a second each).
 
 ### How a building is made
 
-Every building follows the tavern's pattern. `data/buildings/tavern.tres` says which scene it is and where it stands; `scenes/buildings/tavern.tscn` is the building, edited like any scene, with `scripts/buildings/building.gd` on its root and these children:
+Every building follows the same pattern (the tavern, cottage, post office, cabin, barracks and store all do). Its `.tres` in `data/buildings` says which scene it is, where it stands and which way it faces; `scenes/buildings/tavern.tscn` is the building, edited like any scene, with `scripts/buildings/building.gd` on its root and these children:
 
 | Node | What it holds |
 |---|---|
@@ -109,10 +121,10 @@ Every building follows the tavern's pattern. `data/buildings/tavern.tres` says w
 | Solid | a StaticBody3D on the "world" layer: walls, furniture, floors and stair steps as collision shapes |
 | Door | a `Door` hinge; its leaf and collider are on the "doors" layer, which residents bump into and the navigation bake ignores |
 | Nav | an empty NavigationRegion3D, baked from the collision shapes at start-up |
-| Upper/Beds | `Bed` nodes, each at the middle of a mattress with -Z toward the head |
+| Upper/Beds | `Bed` nodes, each at the middle of a mattress with -Z toward the head; `owner_id` is the resident whose bed it is (empty for a guest bed) |
 | Ground/Kitchen | a room built on beside the main block; its outer walls are listed in the root's `extra_parts`, so it counts as inside, gets its own tiles and is covered by the baked navigation |
 
-So the walkable area always comes from the collision shapes: give a new piece of furniture a shape under `Solid` and residents walk round it. Residents need a gap of 0.6 m (the navigation mesh keeps 0.3 m clear of everything) to pass between two things and 1.5 m of headroom, including where an upper floor overhangs a stair; stair steps can be up to 0.3 m high. To add a building, make a scene like this and a `.tres` for it in `data/buildings`.
+A building with a garden or yard sets `nav_area` on its root to the whole area its navigation covers, so fences, letterboxes and the like are walked round. So the walkable area always comes from the collision shapes: give a new piece of furniture a shape under `Solid` and residents walk round it. Residents need a gap of 0.6 m (the navigation mesh keeps 0.3 m clear of everything) to pass between two things and 1.5 m of headroom, including where an upper floor overhangs a stair; stair steps can be up to 0.3 m high. To add a building, make a scene like this and a `.tres` for it in `data/buildings`.
 - `scenes/actors/resident.tscn` is every resident's body, edited like any scene; `scripts/defs/npc_def.gd` is the data each one is made from. To add a resident, add a new `.tres` to `data/npcs`; its sleep and wake hours and its goodnight and morning lines are set there too.
 - `scripts/player/player_controller.gd` is the local player: who they control and the keys that drive them. `scripts/world/camera_rig.gd` handles the camera and every mouse action on the world.
 
@@ -124,6 +136,6 @@ So the walkable area always comes from the collision shapes: give a new piece of
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 6
+## Next: milestone 7
 
-Homes: Mira's cottage, built the same way as the tavern (its own scene, door, bed and navigation), so each resident sleeps in their own bed and the tavern's beds are for guests.
+The other residents move in: Bolt, Brann, Tilda, Dax and Dex from the HTML game, each with their own home, bed, sleeping hours and lines, filling the empty houses.
