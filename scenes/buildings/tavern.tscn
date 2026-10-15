@@ -1127,7 +1127,7 @@ size = Vector3(0.63, 0.08, 0.63)
 
 [sub_resource type="BoxMesh" id="BoxMesh_234"]
 material = SubResource("StandardMaterial3D_6")
-size = Vector3(0.96, 1.98, 0.06)
+size = Vector3(0.99, 2, 0.06)
 
 [sub_resource type="BoxMesh" id="BoxMesh_235"]
 material = SubResource("StandardMaterial3D_2")
@@ -3228,7 +3228,7 @@ script = ExtResource("2_door")
 width = 1
 
 [node name="Leaf" type="MeshInstance3D" parent="Door"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.995, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.005, 0)
 mesh = SubResource("BoxMesh_234")
 
 [node name="Rail" type="MeshInstance3D" parent="Door"]
@@ -3252,7 +3252,7 @@ collision_layer = 8
 collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="Door/Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.995, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.005, 0)
 shape = SubResource("BoxShape3D_237")
 
 [node name="KitchenDoor" type="Node3D" parent="."]
@@ -3261,7 +3261,7 @@ script = ExtResource("2_door")
 width = 1
 
 [node name="Leaf" type="MeshInstance3D" parent="KitchenDoor"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.995, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.005, 0)
 mesh = SubResource("BoxMesh_234")
 
 [node name="Rail" type="MeshInstance3D" parent="KitchenDoor"]
@@ -3285,7 +3285,7 @@ collision_layer = 8
 collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="KitchenDoor/Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.995, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.005, 0)
 shape = SubResource("BoxShape3D_237")
 
 [node name="Nav" type="NavigationRegion3D" parent="."]
