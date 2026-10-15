@@ -5,9 +5,9 @@ extends MeshInstance3D
 ## ground's soft blending doesn't spill grey past the square's edge.
 
 ## Centre of the square (world x, z in metres).
-@export var centre := Vector2(0.0, 3.65)
+@export var centre := Vector2(0.0, 5.825)
 ## Length of each side (m).
-@export var size := 10.5
+@export var size := 14.85
 
 func _ready() -> void:
 	var plane := PlaneMesh.new()
