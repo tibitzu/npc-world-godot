@@ -18,6 +18,7 @@ func _ready() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = preload("res://shaders/cobbles.gdshader")
 	mat.set_shader_parameter("size", size)
+	mat.set_shader_parameter("depth_bias", 0.0009)    # above the roads (see the shader)
 	material_override = mat
 	var r := Rect2(centre - Vector2(size, size) * 0.5, Vector2(size, size))
 	for i in Hex.tiles_in(r):

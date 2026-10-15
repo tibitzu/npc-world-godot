@@ -4,7 +4,7 @@ shader_type spatial;
 // position; on a road (road = true) they're laid along it from its UVs (x across 0..1, y along in
 // metres), with kerb stones down both edges.
 
-render_mode diffuse_lambert;
+render_mode diffuse_lambert, skip_vertex_transform;
 
 uniform vec3 stone_colour : source_color = vec3(0.5, 0.505, 0.52);
 uniform vec3 mortar_colour : source_color = vec3(0.28, 0.28, 0.29);
@@ -15,6 +15,8 @@ uniform bool road = false;
 uniform float road_width = 2.6;
 uniform float unfinished = 3.5;               // metres at an unfinished road's end where stones are missing
 uniform vec3 sand_colour : source_color = vec3(0.7, 0.6, 0.44);
+
+uniform float depth_bias = 0.0004;          // fraction of the distance to pull toward the camera (see vertex())
 
 varying vec2 local;                           // metres from the plane's centre
 varying float left;                           // metres to the end of an unfinished road (10+ elsewhere)
@@ -32,6 +34,17 @@ float rbox(vec2 p, vec2 b, float r) {
 void vertex() {
 	local = road ? vec2((UV.x - 0.5) * road_width, UV.y) : VERTEX.xz;
 	left = road ? COLOR.r * 10.0 : 10.0;
+	// Pull the surface toward the camera by a tiny fraction of its distance. Seen from the eye this
+	// moves nothing on screen, but its depth now clearly wins over whatever lies just below it (the
+	// ground, a road running under the square), so the layers don't flicker when seen from far off.
+	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+	if (PROJECTION_MATRIX[3][3] == 0.0) {                 // perspective (not an orthographic shadow pass)
+		view.xyz *= 1.0 - depth_bias;
+	}
+	VERTEX = view.xyz;
+	NORMAL = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	TANGENT = normalize((MODELVIEW_MATRIX * vec4(TANGENT, 0.0)).xyz);
+	BINORMAL = normalize((MODELVIEW_MATRIX * vec4(BINORMAL, 0.0)).xyz);
 }
 
 void fragment() {

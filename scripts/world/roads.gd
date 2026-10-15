@@ -76,6 +76,7 @@ func _ready() -> void:
 	mat.set_shader_parameter("road", true)
 	mat.set_shader_parameter("road_width", WIDTH)
 	mat.set_shader_parameter("unfinished", UNFINISHED)
+	mat.set_shader_parameter("depth_bias", 0.0006)
 	material_override = mat
 	# the dirt tracks: their own mesh, a little below the cobbles they run out from under
 	var ds := SurfaceTool.new()
@@ -90,6 +91,7 @@ func _ready() -> void:
 	var dm := ShaderMaterial.new()
 	dm.shader = preload("res://shaders/dirt.gdshader")
 	dm.set_shader_parameter("road_width", DIRT_WIDTH)
+	dm.set_shader_parameter("depth_bias", 0.0003)
 	dm.set_shader_parameter("bed_length", BED * STEP + UNFINISHED * 0.5)
 	dirt.material_override = dm
 	add_child(dirt)

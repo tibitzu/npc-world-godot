@@ -3,7 +3,7 @@ shader_type spatial;
 // a scatter of pebbles and ragged edges where the moss grows in. Laid along the road strip from its
 // UVs (x across 0..1, y along in metres), like the cobbled roads.
 
-render_mode diffuse_lambert, specular_disabled;
+render_mode diffuse_lambert, specular_disabled, skip_vertex_transform;
 
 uniform vec3 earth_colour : source_color = vec3(0.47, 0.37, 0.26);
 uniform vec3 rut_colour : source_color = vec3(0.34, 0.26, 0.18);
@@ -13,6 +13,8 @@ uniform float road_width = 2.4;
 uniform float rut_gap = 1.3;           // metres between the wheel ruts
 uniform float bed_length = 6.5;        // metres at the start laid as a levelled sand bed (under new cobbles)
 uniform vec3 sand_colour : source_color = vec3(0.7, 0.6, 0.44);
+
+uniform float depth_bias = 0.0004;          // fraction of the distance to pull toward the camera (see vertex())
 
 varying vec2 local;                    // metres: x across from the middle, y along
 
@@ -33,6 +35,17 @@ float fbm(vec2 p) {
 
 void vertex() {
 	local = vec2((UV.x - 0.5) * road_width, UV.y);
+	// Pull the surface toward the camera by a tiny fraction of its distance. Seen from the eye this
+	// moves nothing on screen, but its depth now clearly wins over whatever lies just below it (the
+	// ground, a road running under the square), so the layers don't flicker when seen from far off.
+	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+	if (PROJECTION_MATRIX[3][3] == 0.0) {                 // perspective (not an orthographic shadow pass)
+		view.xyz *= 1.0 - depth_bias;
+	}
+	VERTEX = view.xyz;
+	NORMAL = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	TANGENT = normalize((MODELVIEW_MATRIX * vec4(TANGENT, 0.0)).xyz);
+	BINORMAL = normalize((MODELVIEW_MATRIX * vec4(BINORMAL, 0.0)).xyz);
 }
 
 void fragment() {
