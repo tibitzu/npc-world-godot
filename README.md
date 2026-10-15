@@ -14,7 +14,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
-- The town square: a 14.85 m square of grey cobblestones (twice the area of a square 1.5 times the tavern's front) whose north edge runs along the tavern's front wall, centred on its door. (The HTML game's sandy roads and round square have been taken out.)
+- The town square: a 21 m square of grey cobblestones (three times the tavern's front) whose north edge runs along the tavern's front wall, centred on its door. (The HTML game's sandy roads and round square have been taken out.)
 - The world wraps both ways: go far enough east and you come back from the west, with no seam anywhere.
 - The sun, shadows, and the view fading into black with distance.
 - Press **V** to switch between the smooth ground and the hex tiles. The tile under the cursor shows in the top left.

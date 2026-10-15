@@ -8,7 +8,7 @@ render_mode diffuse_lambert;
 uniform vec3 stone_colour : source_color = vec3(0.5, 0.505, 0.52);
 uniform vec3 mortar_colour : source_color = vec3(0.28, 0.28, 0.29);
 uniform vec2 stone_size = vec2(0.26, 0.2);    // one cobble, metres
-uniform float size = 14.85;                    // the plane's side, metres (for the kerb)
+uniform float size = 21.0;                    // the plane's side, metres (for the kerb)
 uniform float kerb = 0.3;                     // width of the kerb border, metres
 
 varying vec2 local;                           // metres from the plane's centre
