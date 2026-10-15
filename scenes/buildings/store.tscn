@@ -921,7 +921,7 @@ upper_floor = 2.5
 wall_height = 4.4
 apron = 1
 tile_kind = "store"
-nav_area = Rect2(-4.6, -3.8, 9.2, 8.6)
+nav_area = Rect2(-4.6, -3.8, 9.2, 8.3)
 
 [node name="Ground" type="Node3D" parent="."]
 
@@ -2257,7 +2257,7 @@ omni_range = 5
 omni_attenuation = 2.0
 
 [node name="Letterbox" type="Node3D" parent="Ground"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0, 4.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0, 4)
 
 [node name="Post" type="MeshInstance3D" parent="Ground/Letterbox"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.525, 0)
@@ -2281,7 +2281,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 1.25, -0.05)
 mesh = SubResource("BoxMesh_194")
 
 [node name="Letterbox" type="CollisionShape3D" parent="Solid"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0.7, 4.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0.7, 4)
 shape = SubResource("CylinderShape3D_195")
 
 [node name="Nav" type="NavigationRegion3D" parent="."]
