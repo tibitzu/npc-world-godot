@@ -13,3 +13,7 @@ speed = 1.1
 wander_range = 5.0
 home_radius = 9.0
 lines = PackedStringArray("The moss by the well is finally coming in.", "Save me a seat at the Hex & Lantern.", "Do you think the moss minds being walked on?", "Smells like rain.", "Every bed gets watered. Every single one.")
+sleep_hour = 21.0
+wake_hour = 5.0
+bed_lines = PackedStringArray("Early start tomorrow. The beans won't water themselves.", "Off to bed. Goodnight, garden.")
+wake_lines = PackedStringArray("Morning! Watering can, where are you?", "Up with the sparrows.")

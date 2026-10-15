@@ -16,3 +16,11 @@ extends Resource
 ## How far from their start they will wander (m).
 @export var home_radius := 10.0
 @export var lines: PackedStringArray = []
+
+## Daily routine (local time where their bed is, in hours 0-24). They go to bed at sleep_hour
+## and get up at wake_hour; a sleep that runs past midnight is fine (21 to 5).
+@export_range(0.0, 24.0, 0.25) var sleep_hour := 22.0
+@export_range(0.0, 24.0, 0.25) var wake_hour := 6.0
+## One of these is said on the way to bed, and one on getting up.
+@export var bed_lines: PackedStringArray = []
+@export var wake_lines: PackedStringArray = []

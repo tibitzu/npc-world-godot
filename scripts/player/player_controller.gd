@@ -4,9 +4,7 @@ extends Node
 ## W/S walk, A/D step aside, Q/E or arrows turn, Left Shift runs, T switches view, Esc lets go,
 ## F lies down in the bed at hand (or gets up). After IDLE_LIMIT seconds without input the
 ## resident takes themselves back.
-##
-## B sends every resident nobody is playing to a free bed, or gets them all up again
-## (until the clock and daily routines arrive in milestone 4).
+
 
 signal control_changed(resident: Resident)
 
@@ -80,29 +78,7 @@ func bed_at_hand() -> Bed:
 	return best
 
 
-## B: everyone nobody is playing goes to bed; if any of them already are, they all get up.
-func bedtime() -> void:
-	var others: Array[Resident] = []
-	for r in get_tree().get_nodes_in_group("residents"):
-		if r != controlled:
-			others.append(r)
-	var any_abed := others.any(func(r: Resident) -> bool: return r.bed != null)
-	for r in others:
-		if any_abed:
-			r.get_up()
-		elif r.bed == null:
-			var free := get_tree().get_nodes_in_group("beds").filter(func(b: Bed) -> bool: return b.occupant == null)
-			free.sort_custom(func(a: Bed, b: Bed) -> bool:
-				return Hex.distance(a.stand_point(), r.position) < Hex.distance(b.stand_point(), r.position))
-			if not free.is_empty():
-				r.go_to_bed(free[0])
-
-
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("bedtime"):
-		bedtime()
-		get_viewport().set_input_as_handled()
-		return
 	if controlled == null:
 		return
 	if event.is_action_pressed("let_go"):

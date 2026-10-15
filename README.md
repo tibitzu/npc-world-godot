@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 4, the clock
+## Where it's up to: milestone 5, daily routines
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -31,7 +31,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Its door opens for anyone who comes near and closes behind them.
 - The tavern bakes its own navigation mesh from its walls, furniture, floors and stair when the game starts, and the open ground's mesh is carved away under it, so the two meet all round. Nothing is placed by hand: move a table in the editor and the routes go round it.
 - Residents' feet follow whatever is under them (floor, step or upper floor), so they walk up and down the stair like any other route.
-- Press **B** and every resident nobody is playing walks in, up the stairs and lies down in the nearest free bed (as long as beds are free); press **B** again and they all get up and go back out.
+- Residents can walk in, up the stairs and lie down in a bed, and get up again (from milestone 5 they do this on their own at night).
 - Playing a resident, click any floor inside to walk there, and press **F** at the foot of a bed to lie down (or get up). Walking gets you out of bed too.
 - In third person inside, the roof fades away, and the upper floor too while you're downstairs, so you can see in. The same happens whenever the camera itself is inside the walls, such as just after you walk out of the door. Faded parts keep their shadows, so the room stays dim.
 
@@ -40,6 +40,14 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - The sun crosses the map from east to west, so the time of day depends on where you are: when it's noon at the town square, it's midnight half the map away. The clock in the top left shows the local time where you're looking (or where the resident you're playing stands), the part of the day, and which day it is, with the HTML game's 24-hour dial.
 - Day and night: the sunlight fades and warms at dawn and dusk and is gone at night, when the sky light drops to a third. The sun swings from east to west through the day, so shadows move. Lamps grow brighter after dark and windows glow; fires burn the same all day.
 - Game speed: 1×, 2× or 5× from the bar at the top (or **[** and **]**). Everything runs faster, residents included; the camera and your turning keys keep their normal pace.
+
+**Milestone 5, daily routines**
+- Each resident has sleeping hours, as in the HTML game (Mira sleeps 21:00–05:00, by the local time where she is). At bedtime a resident nobody is playing says one of their goodnight lines, walks to the nearest free bed (for now, in the tavern: there are no homes yet), and lies down. At waking time they get up, say a morning line and go back to their day.
+- If every bed is taken they keep going about their business and look again every couple of game seconds.
+- Let go of a resident at night and they go back to bed; take over one who is asleep and you can walk them out of bed.
+- Lines appear in a bubble above the speaker's name for a few seconds.
+- Each card in the top right now shows what the resident is doing (Walking, Going to bed, Asleep, Played by you) and their sleeping hours.
+- The **B** shortcut from milestone 3 is gone: the routines do its job.
 
 ### Controls (overview camera)
 
@@ -54,7 +62,6 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 | Take control of a resident | Click them, or their card |
 | Hex tiles on/off | V |
 | Show routes | P |
-| Everyone else to bed / up again | B |
 | Game speed slower / faster | [ and ] |
 
 ### Controls (playing a resident)
@@ -106,7 +113,7 @@ Every building follows the tavern's pattern. `data/buildings/tavern.tres` says w
 | Ground/Kitchen | a room built on beside the main block; its outer walls are listed in the root's `extra_parts`, so it counts as inside, gets its own tiles and is covered by the baked navigation |
 
 So the walkable area always comes from the collision shapes: give a new piece of furniture a shape under `Solid` and residents walk round it. Residents need a gap of 0.6 m (the navigation mesh keeps 0.3 m clear of everything) to pass between two things and 1.5 m of headroom, including where an upper floor overhangs a stair; stair steps can be up to 0.3 m high. To add a building, make a scene like this and a `.tres` for it in `data/buildings`.
-- `scenes/actors/resident.tscn` is every resident's body, edited like any scene; `scripts/defs/npc_def.gd` is the data each one is made from. To add a resident, add a new `.tres` to `data/npcs`.
+- `scenes/actors/resident.tscn` is every resident's body, edited like any scene; `scripts/defs/npc_def.gd` is the data each one is made from. To add a resident, add a new `.tres` to `data/npcs`; its sleep and wake hours and its goodnight and morning lines are set there too.
 - `scripts/player/player_controller.gd` is the local player: who they control and the keys that drive them. `scripts/world/camera_rig.gd` handles the camera and every mouse action on the world.
 
 ### Screenshots without the editor
@@ -117,6 +124,6 @@ So the walkable area always comes from the collision shapes: give a new piece of
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 5
+## Next: milestone 6
 
-Daily routines: each resident gets the HTML game's sleep and wake hours, and at bedtime walks to a bed (home, or the tavern) and lies down, then gets up and goes about their day in the morning, without anyone pressing B.
+Homes: Mira's cottage, built the same way as the tavern (its own scene, door, bed and navigation), so each resident sleeps in their own bed and the tavern's beds are for guests.

@@ -144,7 +144,7 @@ func _build_roster() -> void:
 	for r in get_tree().get_nodes_in_group("residents"):
 		var res := r as Resident
 		var b := Button.new()
-		b.text = "%s · %s" % [res.def.display_name, res.def.role]
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.toggle_mode = true
 		b.focus_mode = Control.FOCUS_NONE
 		b.add_theme_color_override("font_color", Look.html_colour(res.def.colour).lightened(0.3))
@@ -166,13 +166,19 @@ func _refresh() -> void:
 	_let_go_btn.visible = ctrl != null
 	_view_btn.text = "1st person" if _rig.third_person else "3rd person"
 	if ctrl:
-		_help.text = "You are %s. W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · F lies down in a bed or gets up · scroll or T switches view · B bedtime for the others · P routes · Esc lets go" % ctrl.def.display_name
+		_help.text = "You are %s. W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · F lies down in a bed or gets up · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
 	else:
-		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · B bedtime · [ ] game speed · V tiles · P routes"
+		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · [ ] game speed · V tiles · P routes"
 
 
 func _process(_delta: float) -> void:
 	_update_clock()
+	for res in _cards:
+		var r := res as Resident
+		var t := "%s · %s\n%s · sleeps %s–%s" % [r.def.display_name, r.def.role, r.status(),
+			Game.clock_text(r.def.sleep_hour), Game.clock_text(r.def.wake_hour)]
+		if (_cards[res] as Button).text != t:
+			(_cards[res] as Button).text = t
 	var ctrl := _player.controlled
 	var left := _player.idle_left() if ctrl else 99.0
 	_idle.visible = ctrl != null and left < 10.0

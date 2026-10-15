@@ -169,3 +169,22 @@ outline_modulate = Color(0.08, 0.08, 0.1, 0.85)
 text = "NAME"
 font_size = 36
 outline_size = 12
+
+[node name="Say" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.95, 0)
+visible = false
+pixel_size = 0.0006
+billboard = 1
+no_depth_test = true
+fixed_size = true
+render_priority = 12
+outline_render_priority = 11
+modulate = Color(1, 0.97, 0.9, 1)
+outline_modulate = Color(0.08, 0.08, 0.1, 0.9)
+text = "..."
+offset = Vector2(0, 30)
+vertical_alignment = 2
+font_size = 30
+outline_size = 12
+autowrap_mode = 3
+width = 520.0

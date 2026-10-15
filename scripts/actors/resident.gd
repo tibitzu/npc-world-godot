@@ -10,6 +10,10 @@ extends CharacterBody3D
 ##
 ## A resident can be sent to a bed (go_to_bed): they walk to its foot and lie down, and stay
 ## there until they get up (get_up), are played, or are sent somewhere else.
+##
+## Daily routine: while nobody is playing them, at their sleep hour (local time) they say one of
+## their bedtime lines and go to the nearest free bed, and at their wake hour they get up, say a
+## morning line and carry on with their day.
 
 signal arrived
 
@@ -17,6 +21,8 @@ const PLAYED_SPEED := 2.3          # m/s when a player walks them
 const RUN_FACTOR := 1.5            # Left Shift
 const ARRIVE_DIST := 0.08          # close enough to a destination (m)
 const LIE_TIME := 0.7              # seconds to lie down or get up
+const SAY_TIME := 4.5              # seconds a line stays over their head
+const ROUTINE_CHECK := 2.0         # how often (game seconds) a resident looks for a bed if none was free
 const STEP_UP := 0.35              # the highest step they walk up without noticing (m)
 const FLOOR_MASK := 1              # the "world" layer: floors, stairs, walls, furniture
 
@@ -39,12 +45,15 @@ var _stuck := 0.0
 var _lying := false                # in bed, or getting in
 var _lie := 0.0                    # 0 standing .. 1 lying down
 var _stand_at := Vector3.ZERO      # where they got in (and will get out)
+var _say_left := 0.0               # real seconds the current line has left
+var _routine_wait := 0.0           # until the next look for a free bed
 var _path := PackedVector3Array()  # the route being followed (from the agent)
 var _wp := 0                       # which point of it they're heading for
 
 @onready var agent: NavigationAgent3D = $Agent
 @onready var body: Node3D = $Body
 @onready var tag: Label3D = $Tag
+@onready var _say: Label3D = $Say
 @onready var _collision: CollisionShape3D = $Collision
 @onready var _arm_l: Node3D = $Body/ArmL
 @onready var _arm_r: Node3D = $Body/ArmR
@@ -131,6 +140,36 @@ func get_up() -> void:
 		_timer = 1.5 + randf() * 2.0
 
 
+## Show a line over their head for a few seconds.
+func say(text: String) -> void:
+	if text.is_empty():
+		return
+	_say.text = text
+	_say.visible = true
+	_say_left = SAY_TIME
+
+
+## Is it their sleeping time, by the local time where they are?
+func sleep_time() -> bool:
+	var h := Game.local_hours(position.x)
+	var s := def.sleep_hour
+	var w := def.wake_hour
+	return (h >= s and h < w) if s < w else (h >= s or h < w)
+
+
+## What they're doing, for the roster.
+func status() -> String:
+	if controlled:
+		return "Played by you"
+	if _lying or _lie > 0.0:
+		return "Asleep" if sleep_time() else "In bed"
+	if bed:
+		return "Going to bed"
+	if moving:
+		return "Walking"
+	return "Idle"
+
+
 ## Hand the resident back to their own routine. If they're in bed they stay there.
 func release() -> void:
 	controlled = false
@@ -162,6 +201,11 @@ func _retarget() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _say_left > 0.0:
+		_say_left -= Game.real_delta(delta)
+		_say.visible = _say_left > 0.0 and tag.visible
+	if not controlled:
+		_routine(delta)
 	if _lying or _lie > 0.0:
 		if controlled and drive != Vector2.ZERO:
 			get_up()                           # a player who walks gets out of bed first
@@ -310,6 +354,47 @@ func _bed_pose(delta: float) -> void:
 		heading = stand_h
 		position = _stand_at
 		_release_bed()
+
+
+# bedtime and morning, for a resident nobody is playing
+func _routine(delta: float) -> void:
+	var night := sleep_time()
+	if night:
+		if bed != null:
+			return                              # in bed, or on the way
+		_routine_wait -= delta
+		if _routine_wait > 0.0:
+			return
+		_routine_wait = ROUTINE_CHECK
+		var b := _nearest_free_bed()
+		if b and go_to_bed(b):
+			say(_pick(def.bed_lines))
+	elif bed != null:
+		if _lying:
+			get_up()
+			say(_pick(def.wake_lines))
+		elif _lie == 0.0:
+			_goal = null                        # morning came while still on the way: never mind
+			_release_bed()
+			_timer = 1.0
+
+
+func _nearest_free_bed() -> Bed:
+	var best: Bed = null
+	var bd := INF
+	for b in get_tree().get_nodes_in_group("beds"):
+		var bed_node := b as Bed
+		if not bed_node.is_free_for(self):
+			continue
+		var d := Hex.distance(position, bed_node.stand_point())
+		if d < bd:
+			bd = d
+			best = bed_node
+	return best
+
+
+static func _pick(lines: PackedStringArray) -> String:
+	return lines[randi() % lines.size()] if lines.size() > 0 else ""
 
 
 # a stroll to a tile within wander_range, staying within home_radius of the start
