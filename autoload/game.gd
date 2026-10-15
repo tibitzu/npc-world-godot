@@ -13,6 +13,12 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_fullscreen"):
+		# F11: fullscreen, or back to a maximised window
+		var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("toggle_tiles"):
 		tiles_shown = not tiles_shown
 		Events.tiles_toggled.emit(tiles_shown)

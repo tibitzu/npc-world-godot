@@ -6,7 +6,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 1. Download the standard **Godot 4.7** editor (not the .NET version) from [godotengine.org](https://godotengine.org/download).
 2. Clone this repo, open Godot, choose **Import**, and pick `project.godot`.
-3. Press **F5** (or the play button) to run.
+3. Press **F5** (or the play button) to run. The game opens in a maximised window; **F11** switches to fullscreen and back.
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
