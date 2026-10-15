@@ -8,5 +8,5 @@ script = ExtResource("1_def")
 id = "store"
 display_name = "General Store"
 scene = ExtResource("2_scene")
-position = Vector2(-21, 2.0)
-rotation = 0.0
+position = Vector2(-15.3, 3.2)
+rotation = 90.0
