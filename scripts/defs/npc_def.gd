@@ -16,6 +16,9 @@ extends Resource
 @export var wander_range := 5.0
 ## How far from their start they will wander (m).
 @export var home_radius := 10.0
+## The chance that a stroll, instead, takes them into the town square for a while (where they
+## meet the others), before they head home again.
+@export_range(0.0, 1.0, 0.01) var town_visits := 0.2
 @export var lines: PackedStringArray = []
 
 ## Daily routine (local time where their bed is, in hours 0-24). They go to bed at sleep_hour
@@ -25,3 +28,9 @@ extends Resource
 ## One of these is said on the way to bed, and one on getting up.
 @export var bed_lines: PackedStringArray = []
 @export var wake_lines: PackedStringArray = []
+
+## Meeting someone: one of greet_lines to open ({n} is the other's name), and when greeted (or
+## spoken to by a player) one of reply_lines; a question from a player gets one of answer_lines.
+@export var greet_lines: PackedStringArray = []
+@export var reply_lines: PackedStringArray = []
+@export var answer_lines: PackedStringArray = []

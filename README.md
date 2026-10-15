@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 7, the residents move in
+## Where it's up to: milestone 8, talking
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -77,6 +77,14 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Each one strolls round their own front yard, goes home to their own bed at bedtime (saying goodnight) and gets up again in the morning. The twins split the day: Dex is asleep while Dax is up, and the other way round. Fen, the lamplighter, sleeps through the day in his tower and is out from late afternoon until morning.
 - Their cards are all down the right-hand side, showing what each is doing and when they sleep; click one (or the resident) to take them over.
 
+**Milestone 8, talking**
+- Residents talk, as in the HTML game. Every so often, at the end of a stroll, one says one of their lines; their mouth moves while they speak, and longer lines stay up longer.
+- When two residents nobody is playing come within sight of each other on the same floor (and neither is busy talking or heading to bed), one walks over while the other waits. They stop, face each other, and one greets the other by name ("Yo, Tilda!", "Good evening, Mira.") and the other replies. The same two won't stop again for half a minute or so. Greetings know the time of day where they are.
+- Now and then a stroll takes a resident into the town square for a while instead (some more than others: Tilda and Fen live on it, Brann is a long walk away), so the square is where they run into each other.
+- **Say something** as the resident you're playing: press **Enter**, type, and Enter again (Esc to cancel). It shows over their head, and everyone within earshot stops, turns and replies one after another; ask a question (with a ?) and they answer it instead. While you're typing, keys don't move anyone.
+- **Town chatter**, bottom left: the last few things said near where you are (or where the camera is looking), in each speaker's colour, fading after a while.
+- Each resident's greetings, replies and answers are in their `.tres` (`greet_lines`, `reply_lines`, `answer_lines`; `{n}` is the other's name, `{tod}` / `{Tod}` the time of day), along with how often they visit the square (`town_visits`). The meeting rules are in `scripts/world/conversations.gd`.
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -108,6 +116,7 @@ A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is eas
 | Walk to a tile | Click it (the tile under the cursor is outlined) |
 | Walk somewhere inside | Click the floor |
 | Lie down / get up | F at the foot of a bed |
+| Say something | Enter, type, Enter (Esc cancels) |
 | First / third person | Scroll, T, or the button |
 | Let go | Esc, the Let go button, or click their card |
 
@@ -157,6 +166,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 8
+## Next: milestone 9
 
-Residents meet and talk: when two pass each other they stop, greet one another and reply, with each resident's greetings and replies from the HTML game.
+Work: each resident's day job from the HTML game. Tilda minds the counter in her store, Bolt runs deliveries between the letterboxes, Fen lights the lamps at dusk and puts them out at dawn, Brann chops wood, and the guards patrol.

@@ -21,6 +21,8 @@ var tiles: TileGrid
 var tiles_shown := false        # V: hex tiles on or off (off by default, as in the HTML game)
 ## Game seconds since the game began (runs faster at higher speeds).
 var world_time := 0.0
+## True while the player is typing something to say (keys then type, they don't move anyone).
+var typing := false
 var speed := 1
 
 

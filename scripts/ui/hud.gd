@@ -2,7 +2,8 @@ extends CanvasLayer
 ## The on-screen text and buttons: the title, the tile under the cursor, the clock (time of day
 ## where you are, its phase and the day), the speed bar, the residents (click a card to take
 ## control or let go), the controls hint, and while controlling, the view switch, Let go, and a
-## warning before the resident takes themselves back.
+## warning before the resident takes themselves back. Bottom left, the town chatter: what residents
+## near where you're looking have just said. While controlling, Enter opens a box to say something.
 
 @onready var _title: Label = $Title
 @onready var _coords: Label = $Coords
@@ -24,6 +25,12 @@ var _shown_minute := -1
 var _tip: PanelContainer
 var _tip_xz: Label
 var _tip_tile: Label
+var _chatter: VBoxContainer
+var _chat_lines: Array = []    # [Label, real time it was said]
+var _say_box: LineEdit
+
+const CHATTER_LINES := 6
+const CHATTER_FADE := 45.0     # real seconds a line stays in the chatter log
 
 
 func _ready() -> void:
@@ -38,6 +45,8 @@ func _ready() -> void:
 	_build_clock()
 	_build_speed_bar()
 	_build_cursor_tip()
+	_build_chatter()
+	_build_say_box()
 	Game.speed_changed.connect(func(_s: int) -> void: _refresh_speed())
 	_idle.offset_top = 62.0
 	_idle.offset_bottom = 86.0
@@ -210,6 +219,7 @@ func _build_roster() -> void:
 				_player.possess(res))
 		_roster.add_child(b)
 		_cards[res] = b
+		res.spoke.connect(func(text: String) -> void: _on_spoke(res, text))
 	_refresh()
 
 
@@ -220,8 +230,10 @@ func _refresh() -> void:
 	_view_btn.visible = ctrl != null
 	_let_go_btn.visible = ctrl != null
 	_view_btn.text = "1st person" if _rig.third_person else "3rd person"
+	if ctrl == null and _say_box and _say_box.visible:
+		_close_say_box()
 	if ctrl:
-		_help.text = "You are %s. W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · F lies down in a bed or gets up · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
+		_help.text = "You are %s. Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · F lies down in a bed or gets up · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
 	else:
 		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · [ ] game speed · V tiles · P routes"
 
@@ -229,6 +241,7 @@ func _refresh() -> void:
 func _process(_delta: float) -> void:
 	_update_clock()
 	_update_cursor_tip()
+	_update_chatter()
 	for res in _cards:
 		var r := res as Resident
 		var t := "%s · %s\n%s · sleeps %s–%s" % [r.def.display_name, r.def.role, r.status(),
@@ -240,6 +253,126 @@ func _process(_delta: float) -> void:
 	_idle.visible = ctrl != null and left < 10.0
 	if _idle.visible:
 		_idle.text = "%s will carry on alone in %d s" % [ctrl.def.display_name, ceili(left)]
+
+
+# ---------- the town chatter (bottom left) ----------
+
+func _build_chatter() -> void:
+	_chatter = VBoxContainer.new()
+	_chatter.anchor_top = 1.0
+	_chatter.anchor_bottom = 1.0
+	_chatter.offset_left = 16.0
+	_chatter.offset_right = 470.0
+	_chatter.offset_top = -250.0
+	_chatter.offset_bottom = -44.0
+	_chatter.alignment = BoxContainer.ALIGNMENT_END
+	_chatter.add_theme_constant_override("separation", 2)
+	_chatter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_chatter)
+	var title := Label.new()
+	title.text = "TOWN CHATTER"
+	title.add_theme_font_size_override("font_size", 11)
+	title.add_theme_color_override("font_color", Color(0.75, 0.73, 0.68, 0.8))
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	title.visible = false
+	_chatter.add_child(title)
+
+
+# a resident said something: log it if it was within earshot of where you are (or are looking)
+func _on_spoke(res: Resident, text: String) -> void:
+	var ctrl := _player.controlled
+	var near: bool
+	if ctrl:
+		near = res == ctrl or Hex.distance(res.position, ctrl.position) < 20.0
+	else:
+		near = Hex.distance(res.position, _rig.focus) < 20.0 + _rig.dist * 0.6
+	if not near:
+		return
+	var l := RichTextLabel.new()
+	l.bbcode_enabled = true
+	l.fit_content = true
+	l.scroll_active = false
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.add_theme_font_size_override("normal_font_size", 13)
+	l.add_theme_color_override("default_color", Color(0.93, 0.91, 0.86, 0.95))
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	l.add_theme_constant_override("shadow_offset_x", 1)
+	l.add_theme_constant_override("shadow_offset_y", 1)
+	var who := res.def.display_name + (" [color=#aaa49a](you)[/color]" if res == ctrl else "")
+	var colour := Look.html_colour(res.def.colour).lightened(0.3).to_html(false)
+	l.text = "[color=#%s]%s[/color]: %s" % [colour, who, text.replace("[", "[lb]")]
+	_chatter.add_child(l)
+	_chat_lines.append([l, Time.get_ticks_msec() / 1000.0])
+	while _chat_lines.size() > CHATTER_LINES:
+		(_chat_lines.pop_front()[0] as Node).queue_free()
+	_chatter.get_child(0).visible = true
+
+
+func _update_chatter() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	while not _chat_lines.is_empty() and now - _chat_lines[0][1] > CHATTER_FADE:
+		(_chat_lines.pop_front()[0] as Node).queue_free()
+	for e in _chat_lines:
+		var age: float = now - e[1]
+		(e[0] as Control).modulate.a = clampf((CHATTER_FADE - age) / 8.0, 0.0, 1.0)
+	_chatter.get_child(0).visible = not _chat_lines.is_empty()
+
+
+# ---------- saying something as the resident you're playing ----------
+
+func _build_say_box() -> void:
+	_say_box = LineEdit.new()
+	_say_box.anchor_left = 0.5
+	_say_box.anchor_right = 0.5
+	_say_box.anchor_top = 1.0
+	_say_box.anchor_bottom = 1.0
+	_say_box.offset_left = -260.0
+	_say_box.offset_right = 260.0
+	_say_box.offset_top = -92.0
+	_say_box.offset_bottom = -58.0
+	_say_box.max_length = 120
+	_say_box.visible = false
+	var sb := _panel_style()
+	_say_box.add_theme_stylebox_override("normal", sb)
+	_say_box.add_theme_stylebox_override("focus", sb)
+	add_child(_say_box)
+	_say_box.text_submitted.connect(func(text: String) -> void:
+		var t := text.strip_edges()
+		var ctrl := _player.controlled
+		if ctrl and not t.is_empty():
+			ctrl.say(t)
+			var conv := get_tree().get_first_node_in_group("conversations") as Conversations
+			if conv:
+				conv.player_spoke(ctrl, t)
+			_player.touch()
+		_close_say_box())
+	_say_box.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventKey and (e as InputEventKey).pressed and (e as InputEventKey).keycode == KEY_ESCAPE:
+			_close_say_box()
+			_say_box.accept_event())
+
+
+func _open_say_box() -> void:
+	var ctrl := _player.controlled
+	_say_box.placeholder_text = "Say something as %s, then Enter (Esc to cancel)" % ctrl.def.display_name
+	_say_box.text = ""
+	_say_box.visible = true
+	_say_box.grab_focus()
+	Game.typing = true
+	_player.touch()
+
+
+func _close_say_box() -> void:
+	_say_box.release_focus()
+	_say_box.visible = false
+	Game.typing = false
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("chat") and _player.controlled and not _say_box.visible:
+		_open_say_box()
+		get_viewport().set_input_as_handled()
 
 
 func _on_hovered_tile(i: int, p: Vector3) -> void:

@@ -94,6 +94,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if controlled == null:
 		return
+	if Game.typing:
+		controlled.drive = Vector2.ZERO
+		controlled.running = false
+		return
 	var f := Input.get_action_strength("walk_forward") - Input.get_action_strength("walk_back")
 	var s := Input.get_action_strength("step_right") - Input.get_action_strength("step_left")
 	var turn := Input.get_action_strength("turn_right") - Input.get_action_strength("turn_left")

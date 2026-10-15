@@ -10,6 +10,7 @@ extends MeshInstance3D
 @export var size := 21.0
 
 func _ready() -> void:
+	add_to_group("town_square")
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(size, size)
 	mesh = plane
@@ -24,3 +25,9 @@ func _ready() -> void:
 	for i in Hex.tiles_in(r):
 		Game.tiles.set_flag(i, TileGrid.F_ROAD)
 		Game.tiles.set_kind(i, "square")
+
+
+## A random spot on the square, toward the middle (where residents come to meet).
+func random_spot() -> Vector3:
+	var h := size * 0.3
+	return Vector3(centre.x + randf_range(-h, h), 0.0, centre.y + randf_range(-h, h))

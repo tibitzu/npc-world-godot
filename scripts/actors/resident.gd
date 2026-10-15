@@ -14,14 +14,21 @@ extends CharacterBody3D
 ## Daily routine: while nobody is playing them, at their sleep hour (local time) they say one of
 ## their bedtime lines and go to bed: their own if they have one, otherwise the nearest free guest bed, and at their wake hour they get up, say a
 ## morning line and carry on with their day.
+##
+## Talk: now and then, on reaching the end of a stroll, they say one of their lines. Meeting another
+## resident (see Conversations) they stop, face each other, greet and reply.
 
 signal arrived
+## They said something (shown over their head); the HUD's chatter log listens.
+signal spoke(text: String)
 
 const PLAYED_SPEED := 2.3          # m/s when a player walks them
 const RUN_FACTOR := 1.5            # Left Shift
 const ARRIVE_DIST := 0.08          # close enough to a destination (m)
 const LIE_TIME := 0.7              # seconds to lie down or get up
-const SAY_TIME := 4.5              # seconds a line stays over their head
+const SAY_MIN := 2.8               # real seconds a line stays over their head, at least...
+const SAY_PER_CHAR := 0.07         # ...or 1.2 s plus this per letter, for longer ones
+const MUSE_CHANCE := 0.45          # chance of saying a line at the end of a stroll
 const ROUTINE_CHECK := 2.0         # how often (game seconds) a resident looks for a bed if none was free
 const STEP_UP := 0.35              # the highest step they walk up without noticing (m)
 const FLOOR_MASK := 1              # the "world" layer: floors, stairs, walls, furniture
@@ -48,6 +55,13 @@ var _stand_at := Vector3.ZERO      # where they got in (and will get out)
 var _say_left := 0.0               # real seconds the current line has left
 var _routine_wait := 0.0           # until the next look for a free bed
 var _path := PackedVector3Array()  # the route being followed (from the agent)
+var _talk_left := 0.0              # real seconds of mouth movement left
+var _queued: Array = []            # [game seconds until, text] lines waiting to be said
+var _face: Node3D = null           # someone they've stopped to talk to, and turn to face
+var _visiting := false             # strolling into the town square
+var _bed_line_said := false         # tonight's goodnight has been said
+## Game time (Game.world_time) before which they won't pipe up on their own again.
+var next_speak := 0.0
 var _wp := 0                       # which point of it they're heading for
 
 @onready var agent: NavigationAgent3D = $Agent
@@ -55,6 +69,7 @@ var _wp := 0                       # which point of it they're heading for
 @onready var tag: Label3D = $Tag
 @onready var _say: Label3D = $Say
 @onready var _collision: CollisionShape3D = $Collision
+@onready var _mouth: Node3D = $Body/Mouth
 @onready var _arm_l: Node3D = $Body/ArmL
 @onready var _arm_r: Node3D = $Body/ArmR
 @onready var _leg_l: Node3D = $Body/LegL
@@ -140,13 +155,36 @@ func get_up() -> void:
 		_timer = 1.5 + randf() * 2.0
 
 
-## Show a line over their head for a few seconds.
+## Show a line over their head for a few seconds (longer lines stay longer).
 func say(text: String) -> void:
 	if text.is_empty():
 		return
 	_say.text = text
 	_say.visible = true
-	_say_left = SAY_TIME
+	_say_left = maxf(SAY_MIN, 1.2 + text.length() * SAY_PER_CHAR)
+	_talk_left = minf(_say_left - 0.6, 0.5 + text.length() * 0.045)
+	next_speak = Game.world_time + 6.0 + randf() * 6.0
+	spoke.emit(text)
+
+
+## Say a line after a pause (game seconds).
+func say_later(text: String, delay: float) -> void:
+	if not text.is_empty():
+		_queued.append([delay, text])
+
+
+## Is anything on their mind? Played, mid-sentence, waiting to speak, or busy with bed.
+func is_busy() -> bool:
+	return controlled or _say_left > 0.0 or not _queued.is_empty() or bed != null or _lying or _lie > 0.0
+
+
+## Stop for a few (game) seconds and turn to face someone.
+func stop_to_talk(other: Node3D, secs: float) -> void:
+	if controlled or bed != null:
+		return
+	_goal = null
+	_timer = secs
+	_face = other
 
 
 ## Is it their sleeping time, by the local time where they are?
@@ -189,6 +227,8 @@ func take_over() -> void:
 
 
 func _set_goal(p: Vector3) -> void:
+	_face = null
+	_visiting = false
 	_goal = Vector3(Hex.wrap_x(p.x), p.y, Hex.wrap_z(p.z))
 	_stuck = 0.0
 	_retarget()
@@ -204,6 +244,11 @@ func _physics_process(delta: float) -> void:
 	if _say_left > 0.0:
 		_say_left -= Game.real_delta(delta)
 		_say.visible = _say_left > 0.0 and tag.visible
+	_talk_left = maxf(0.0, _talk_left - Game.real_delta(delta))
+	if not _queued.is_empty():
+		_queued[0][0] -= delta
+		if _queued[0][0] <= 0.0:
+			say(_queued.pop_front()[1])
 	if not controlled:
 		_routine(delta)
 	if _lying or _lie > 0.0:
@@ -253,6 +298,12 @@ func _physics_process(delta: float) -> void:
 
 	var sp := _vel.length()
 	moving = sp > 0.08
+	if _face != null and not moving and not controlled:
+		# stopped to talk: turn to face them
+		var to := Hex.offset(position, _face.position)
+		heading = lerp_angle(heading, atan2(to.x, to.z), minf(1.0, delta * 6.0))
+		if _timer <= 0.0:
+			_face = null
 	if moving:
 		# face the way we're going only when heading somewhere; a player's backwards or sideways
 		# glide while slowing down must never spin them round
@@ -310,6 +361,11 @@ func _arrive() -> void:
 		_lie_down()
 	elif not controlled:
 		_timer = 1.5 + randf() * 3.5
+		if _visiting:
+			_timer = 6.0 + randf() * 8.0        # a while in the square before heading home
+			_visiting = false
+		if bed == null and randf() < MUSE_CHANCE and Game.world_time > next_speak and not is_busy():
+			say(_pick(def.lines))
 	arrived.emit()
 
 
@@ -367,9 +423,12 @@ func _routine(delta: float) -> void:
 			return
 		_routine_wait = ROUTINE_CHECK
 		var b := _nearest_free_bed()
-		if b and go_to_bed(b):
+		if b and go_to_bed(b) and not _bed_line_said:
+			_bed_line_said = true
 			say(_pick(def.bed_lines))
-	elif bed != null:
+	else:
+		_bed_line_said = false
+	if not night and bed != null:
 		if _lying:
 			get_up()
 			say(_pick(def.wake_lines))
@@ -415,6 +474,12 @@ func _autonomy(delta: float) -> void:
 		var t0 := Hex.tile_at(back.x + randf_range(-2.0, 2.0), back.z + randf_range(-2.0, 2.0))
 		_set_goal(Hex.tile_pos(t0))
 		return
+	var square := get_tree().get_first_node_in_group("town_square") as TownSquare
+	if square and randf() < def.town_visits:
+		var spot := square.random_spot()
+		_set_goal(Vector3(Hex.near_copy_x(spot.x, position.x), 0.0, Hex.near_copy_z(spot.z, position.z)))
+		_visiting = true
+		return
 	for attempt in 12:
 		var a := randf() * TAU
 		var r := sqrt(randf()) * def.wander_range
@@ -437,3 +502,4 @@ func _animate(delta: float) -> void:
 	_arm_r.rotation.x = -a
 	_leg_l.rotation.x = -a * 0.8
 	_leg_r.rotation.x = a * 0.8
+	_mouth.scale.y = 1.0 + 3.0 * absf(sin(Time.get_ticks_msec() * 0.018)) if _talk_left > 0.0 else 1.0

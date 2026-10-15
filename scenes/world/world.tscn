@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/world/day_night.gd" id="9_daynight"]
 [ext_resource type="Script" path="res://scripts/world/roads.gd" id="10_roads"]
 [ext_resource type="Script" path="res://scripts/world/roadworks.gd" id="11_works"]
+[ext_resource type="Script" path="res://scripts/world/conversations.gd" id="12_talk"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -59,6 +60,9 @@ script = ExtResource("11_works")
 [node name="Buildings" type="Node3D" parent="."]
 
 [node name="Residents" type="Node3D" parent="."]
+
+[node name="Conversations" type="Node" parent="."]
+script = ExtResource("12_talk")
 
 [node name="Player" type="Node" parent="." groups=["player"]]
 script = ExtResource("5_player")
