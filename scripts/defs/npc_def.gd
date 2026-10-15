@@ -42,3 +42,15 @@ extends Resource
 @export_range(0.0, 24.0, 0.25) var work_from := 8.0
 @export_range(0.0, 24.0, 0.25) var work_to := 18.0
 @export var work_speed := 0.0
+
+## What they wear and carry (see Gear): a hat ("strawhat", "couriercap", "tophat", "beanie",
+## "headscarf", "guardhelm"), the tool in their hand ("trowel", "lanternpole", "fellingaxe",
+## "guardspear", "cudgel"), trouser colour (0xRRGGBB, 0: the default), shoes ("clogs",
+## "runshoes", "buckleshoes", "workboots", "guardboots"), extras ("beard", "apron", "tabard",
+## "bracers") and a helmet's plume colour.
+@export var hat := ""
+@export var tool := ""
+@export var trousers := 0
+@export var shoes := ""
+@export var extras: PackedStringArray = []
+@export var plume := Color(0.79, 0.19, 0.17)

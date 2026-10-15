@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 10, doing the work yourself
+## Where it's up to: milestone 11, looks
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -117,6 +117,22 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - **Packs**: everyone carries their logs and parcels in a pack now (bottom right while you play: logs and parcels slots). What's in it stays when you let go or take someone over, and the residents' jobs use it too: Brann carries on stacking the logs you gathered, Bolt delivers the post you collected.
 - The actions are in `scripts/player/work_actions.gd`.
 
+**Milestone 11, looks**
+- Everyone wears what they wore in the HTML game, so you can tell them apart at a glance:
+
+  | Who | Hat | In hand | And |
+  |---|---|---|---|
+  | Mira | Straw hat with a red band | Trowel | Clogs |
+  | Bolt | Blue courier's cap | (fists) | White running shoes |
+  | Old Fen | Top hat | Lantern pole with a little lit lantern | Buckle shoes |
+  | Brann | Red beanie with a bobble | Felling axe | Beard, work boots, canvas trousers |
+  | Tilda | Ochre headscarf | Cudgel | Apron, buckle shoes |
+  | Dax | Steel helmet, red plume | Spear | Gold tabard, leather bracers, boots |
+  | Dex | Steel helmet, gold plume | Spear | Gold tabard, leather bracers, boots |
+
+- The everyday tool goes away while they're using something else (the axe for chopping, the long pole for lighting a lamp), carrying parcels, or in bed.
+- Outfits are in each resident's `.tres` (`hat`, `tool`, `trousers`, `shoes`, `extras`, `plume`); the shapes are in `scripts/actors/gear.gd`.
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -198,6 +214,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 11
+## Next: milestone 12
 
-Looks: the hats and gear from the HTML game (Mira's brimmed hat, Bolt's cap, Fen's top hat, Brann's beanie and beard, Tilda's apron, the twins' helmets with their different plumes), so everyone is recognisable at a glance.
+Needs, from the HTML game: fatigue, hunger, thirst and happiness. Residents tire through the day and sleep it off, eat at home (by their ovens) or at the tavern, drink at a well on the square, and cheer up chatting with each other; each card shows the bars.

@@ -74,6 +74,7 @@ var _job_active := false           # the job is directing them this frame
 ## What they're doing with their arms: "" (walking), "carry", "chop" or "light".
 var pose := ""
 var _held := ""                    # the tool in their right hand
+var _tool_shown := false           # their everyday tool (def.tool) is in their hand
 ## What they're carrying: logs on their back, parcels in their arms.
 var pack := {"logs": 0, "parcels": 0}
 var _action_left := 0.0            # game seconds of the current action (felling, lighting) left
@@ -112,6 +113,7 @@ func _ready() -> void:
 	cloth.albedo_color = Look.html_colour(def.colour)
 	for p in [$Body/Torso, $Body/ArmL/Mesh, $Body/ArmR/Mesh]:
 		(p as MeshInstance3D).material_override = cloth
+	Gear.dress(body, def)
 	tag.text = def.display_name.to_upper()
 	tag.modulate = Look.html_colour(def.colour).lightened(0.35)
 	_animate(0.0)
@@ -264,6 +266,12 @@ func _end_action(finished: bool) -> void:
 		done.call()
 
 
+# their everyday tool shows in their hand unless they're holding something for work, carrying
+# parcels, or lying down
+func _wants_tool() -> bool:
+	return def.tool != "" and _held == "" and pack.get("parcels", 0) == 0 and _lie == 0.0
+
+
 # logs on the back and parcels in the arms (from the pack), and the tool in the right hand
 func _refresh_props() -> void:
 	for holder in [body, _arm_r]:
@@ -282,7 +290,13 @@ func _refresh_props() -> void:
 			_prop(c, _box_mesh(Vector3(0.22, 0.12, 0.17), 0xb08a5a), Vector3(0.0, 0.5 + i * 0.125, 0.21), Vector3(0, i * 0.3, 0))
 		if parcels > 0:
 			_prop(c, _box_mesh(Vector3(0.23, 0.01, 0.03), 0xd8c9a3), Vector3(0.0, 0.5 + (parcels - 1) * 0.125 + 0.065, 0.21), Vector3.ZERO)
-	if _held != "":
+	_tool_shown = _wants_tool()
+	if _tool_shown:
+		var t := Node3D.new()
+		t.name = "Carry"
+		_arm_r.add_child(t)
+		Gear.tool_in(t, def.tool)
+	elif _held != "":
 		var h := Node3D.new()
 		h.name = "Carry"
 		_arm_r.add_child(h)
@@ -355,7 +369,7 @@ func status() -> String:
 		return "Asleep" if sleep_time() else "In bed"
 	if bed:
 		return "Heading home" if Hex.distance(position, bed.stand_point()) > 12.0 else "Going to bed"
-	if _job_active:
+	if _job_active and job:
 		return job.label()
 	if moving:
 		return "Walking"
@@ -701,6 +715,8 @@ func _autonomy(delta: float) -> void:
 
 
 func _animate(delta: float) -> void:
+	if _wants_tool() != _tool_shown:
+		_refresh_props()
 	_walk_w += ((1.0 if moving else 0.0) - _walk_w) * minf(1.0, delta * 8.0)
 	if _lie == 0.0:
 		body.rotation = Vector3(0.0, heading, 0.0)
