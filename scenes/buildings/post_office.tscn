@@ -626,7 +626,7 @@ upper_floor = 99
 wall_height = 2.9
 apron = 1
 tile_kind = "post office"
-nav_area = Rect2(-4.6, -3.4, 9.2, 7.8)
+nav_area = Rect2(-4.9, -3.4, 8.5, 7.8)
 
 [node name="Ground" type="Node3D" parent="."]
 
@@ -1523,27 +1523,27 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 0.5, 0.75)
 shape = SubResource("BoxShape3D_130")
 
 [node name="Cart" type="MeshInstance3D" parent="Ground"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.75, 0.55, -0.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.75, 0.55, -1.35)
 mesh = SubResource("BoxMesh_131")
 
 [node name="Wheel" type="MeshInstance3D" parent="Ground"]
-transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 3.41, 0.2, -0.6)
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -4.09, 0.2, -1.35)
 mesh = SubResource("CylinderMesh_132")
 
 [node name="Wheel2" type="MeshInstance3D" parent="Ground"]
-transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 4.09, 0.2, -0.6)
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -3.41, 0.2, -1.35)
 mesh = SubResource("CylinderMesh_132")
 
 [node name="CartParcel" type="MeshInstance3D" parent="Ground"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.75, 0.91, -0.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.75, 0.91, -1.35)
 mesh = SubResource("BoxMesh_133")
 
 [node name="CartHandle" type="MeshInstance3D" parent="Ground"]
-transform = Transform3D(1, 0, 0, 0, 0.62161, 0.78333, 0, -0.78333, 0.62161, 3.75, 0.75, 0.15)
+transform = Transform3D(1, 0, 0, 0, 0.62161, 0.78333, 0, -0.78333, 0.62161, -3.75, 0.75, -0.6)
 mesh = SubResource("CylinderMesh_134")
 
 [node name="Cart" type="CollisionShape3D" parent="Solid"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.75, 0.5, -0.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.75, 0.5, -1.2)
 shape = SubResource("BoxShape3D_135")
 
 [node name="PorchLight" type="OmniLight3D" parent="Ground"]

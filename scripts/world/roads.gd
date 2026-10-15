@@ -18,7 +18,7 @@ const STEP := 0.4                  # metres between points along a curve
 @export var paths: Array[PackedVector2Array] = [
 	# west: straight out of the square along the general store's south wall, ending just past Rosehip Cottage
 	PackedVector2Array([Vector2(-8.0, 8.1), Vector2(-38.0, 8.1)]),
-	# east: past the post office to the barracks and on
+	# east: out to the barracks and on
 	PackedVector2Array([Vector2(8.0, 9.0), Vector2(14.0, 9.4), Vector2(21.0, 10.4), Vector2(28.0, 11.8), Vector2(36.0, 11.4), Vector2(44.0, 9.0), Vector2(50.0, 6.0)]),
 	# north: from the square round the tavern's east side, out to where the dirt track begins
 	PackedVector2Array([Vector2(6.5, 1.5), Vector2(9.2, -3.5), Vector2(10.9, -10.0), Vector2(10.4, -17.0), Vector2(7.0, -23.0), Vector2(2.0, -28.5), Vector2(-3.0, -33.0)]),
