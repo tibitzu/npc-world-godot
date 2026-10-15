@@ -276,7 +276,7 @@ func _bed_pose(delta: float) -> void:
 	var hd := bed.head_dir()
 	var stand_h := atan2(hd.x, hd.z)
 	# feet near the foot of the mattress, head on the pillow; lifted by the body's half-depth
-	var lie_pos := bed.global_position - hd * (bed.length * 0.5 - 0.4) + Vector3.UP * 0.26
+	var lie_pos := bed.global_position - hd * (bed.length * 0.5 - 0.4) + Vector3.UP * 0.22
 	position = _stand_at.lerp(lie_pos, t)
 	var standing := Quaternion(Vector3.UP, stand_h)
 	var lying := Basis(hd.cross(Vector3.UP), hd, Vector3.UP).get_rotation_quaternion()

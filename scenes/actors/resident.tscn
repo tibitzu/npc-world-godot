@@ -24,8 +24,8 @@ roughness = 0.85
 
 [sub_resource type="CylinderMesh" id="Mesh_torso"]
 material = SubResource("Mat_cloth")
-top_radius = 0.15
-bottom_radius = 0.19
+top_radius = 0.12
+bottom_radius = 0.155
 height = 0.45
 radial_segments = 12
 rings = 1
@@ -50,16 +50,16 @@ size = Vector3(0.05, 0.012, 0.01)
 
 [sub_resource type="CylinderMesh" id="Mesh_arm"]
 material = SubResource("Mat_cloth")
-top_radius = 0.045
-bottom_radius = 0.04
+top_radius = 0.038
+bottom_radius = 0.034
 height = 0.3
 radial_segments = 8
 rings = 1
 
 [sub_resource type="CylinderMesh" id="Mesh_leg"]
 material = SubResource("Mat_dark")
-top_radius = 0.055
-bottom_radius = 0.05
+top_radius = 0.046
+bottom_radius = 0.042
 height = 0.26
 radial_segments = 8
 rings = 1
@@ -117,28 +117,28 @@ cast_shadow = 0
 mesh = SubResource("Mesh_mouth")
 
 [node name="ArmL" type="Node3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0.66, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.18, 0.66, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Body/ArmL"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
 mesh = SubResource("Mesh_arm")
 
 [node name="ArmR" type="Node3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0.66, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, 0.66, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Body/ArmR"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
 mesh = SubResource("Mesh_arm")
 
 [node name="LegL" type="Node3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08, 0.26, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.065, 0.26, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Body/LegL"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.13, 0)
 mesh = SubResource("Mesh_leg")
 
 [node name="LegR" type="Node3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08, 0.26, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.065, 0.26, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Body/LegR"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.13, 0)
