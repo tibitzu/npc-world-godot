@@ -53,9 +53,9 @@ func _refresh() -> void:
 	_let_go_btn.visible = ctrl != null
 	_view_btn.text = "1st person" if _rig.third_person else "3rd person"
 	if ctrl:
-		_help.text = "You are %s. W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile to walk there · scroll or T switches view · P shows routes · Esc lets go" % ctrl.def.display_name
+		_help.text = "You are %s. W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · F lies down in a bed or gets up · scroll or T switches view · B bedtime for the others · P routes · Esc lets go" % ctrl.def.display_name
 	else:
-		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · V tiles · P routes"
+		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · B bedtime · V tiles · P routes"
 
 
 func _process(_delta: float) -> void:

@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 2, a resident you can play
+## Where it's up to: milestone 3, a building you can go into
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile exactly as in the HTML game (moss greens, sandy roads).
@@ -26,6 +26,15 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Press **P** to draw the route each resident is following.
 - After 30 seconds without input, Mira goes back to her own business (a countdown shows for the last 10).
 
+**Milestone 3, the tavern**
+- The Hex & Lantern stands north of the square, built as in the HTML game downstairs (bar, bottle shelves, barrels, fireplace, rug, a table with a candle) with a new upper floor: a stair up the east wall to three guest beds.
+- Its door opens for anyone who comes near and closes behind them.
+- The tavern bakes its own navigation mesh from its walls, furniture, floors and stair when the game starts, and the open ground's mesh is carved away under it, so the two meet all round. Nothing is placed by hand: move a table in the editor and the routes go round it.
+- Residents' feet follow whatever is under them (floor, step or upper floor), so they walk up and down the stair like any other route.
+- Press **B** and every resident nobody is playing walks in, up the stairs and lies down in the nearest free bed; press **B** again and they all get up and go back out.
+- Playing a resident, click any floor inside to walk there, and press **F** at the foot of a bed to lie down (or get up). Walking gets you out of bed too.
+- In third person inside, the roof fades away, and the upper floor too while you're downstairs, so you can see in. They keep their shadows, so the room stays dim.
+
 ### Controls (overview camera)
 
 | Action | Control |
@@ -39,6 +48,7 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 | Take control of a resident | Click them, or their card |
 | Hex tiles on/off | V |
 | Show routes | P |
+| Everyone else to bed / up again | B |
 
 ### Controls (playing a resident)
 
@@ -50,6 +60,8 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 | Turn | Q and E, Left and Right, or drag |
 | Look up and down | Drag |
 | Walk to a tile | Click it (the tile under the cursor is outlined) |
+| Walk somewhere inside | Click the floor |
+| Lie down / get up | F at the foot of a bed |
 | First / third person | Scroll, T, or the button |
 | Let go | Esc, the Let go button, or click their card |
 
@@ -57,9 +69,9 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 
 ```
 autoload/   Game (seed, tile grid), Events (shared signals), Registry (content by id), Net (multiplayer, later)
-data/       content definitions as .tres files: items, npcs (mira.tres), monsters, buildings, professions
-scenes/     world, buildings, actors (resident.tscn) and UI scenes
-scripts/    world (hex grid, ground, navigation, camera), actors, player, defs, components, brains, UI
+data/       content definitions as .tres files: items, npcs (mira.tres), monsters, buildings (tavern.tres), professions
+scenes/     world, buildings (tavern.tscn), actors (resident.tscn) and UI scenes
+scripts/    world (hex grid, ground, navigation, camera), buildings, actors, player, defs, components, brains, UI
 shaders/    the ground shader that draws the wrapping map
 tools/      editor and test helpers
 ```
@@ -67,7 +79,23 @@ tools/      editor and test helpers
 - `scripts/world/hex.gd` holds the hex grid and wrap maths, ported from the HTML game: which tile a point is on, neighbours, and the shortest distance across the seams. Everything that measures distance goes through it.
 - `scripts/world/tile_grid.gd` keeps each tile's flags, kind and colour in packed arrays, plus a texture the ground shader reads.
 - The ground is one plane that follows the camera; its shader folds every point back onto the map, which is what makes the wrap seamless.
-- `scripts/world/world_nav.gd` covers the map with navigation mesh in a 12 × 10 grid of chunks. The chunks along each edge also get a copy just past the opposite edge, so routes run straight across the seam; a resident who steps over it is moved back by one world width.
+- `scripts/world/world_nav.gd` covers the map with navigation mesh in a 12 × 10 grid of chunks. The chunks along each edge also get a copy just past the opposite edge, so routes run straight across the seam; a resident who steps over it is moved back by one world width. A building carves its area out, and only the chunks it touches are baked again (about a tenth of a second each).
+
+### How a building is made
+
+Every building follows the tavern's pattern. `data/buildings/tavern.tres` says which scene it is and where it stands; `scenes/buildings/tavern.tscn` is the building, edited like any scene, with `scripts/buildings/building.gd` on its root and these children:
+
+| Node | What it holds |
+|---|---|
+| Ground | the ground storey's meshes, including the stair |
+| Upper | everything from the first floor up, with its own `Solid` body |
+| Roof | the roof (fades while you look in) |
+| Solid | a StaticBody3D on the "world" layer: walls, furniture, floors and stair steps as collision shapes |
+| Door | a `Door` hinge; its leaf and collider are on the "doors" layer, which residents bump into and the navigation bake ignores |
+| Nav | an empty NavigationRegion3D, baked from the collision shapes at start-up |
+| Upper/Beds | `Bed` nodes, each at the middle of a mattress with -Z toward the head |
+
+So the walkable area always comes from the collision shapes: give a new piece of furniture a shape under `Solid` and residents walk round it. Stair steps can be up to 0.3 m high. To add a building, make a scene like this and a `.tres` for it in `data/buildings`.
 - `scenes/actors/resident.tscn` is every resident's body, edited like any scene; `scripts/defs/npc_def.gd` is the data each one is made from. To add a resident, add a new `.tres` to `data/npcs`.
 - `scripts/player/player_controller.gd` is the local player: who they control and the keys that drive them. `scripts/world/camera_rig.gd` handles the camera and every mouse action on the world.
 
@@ -79,6 +107,6 @@ tools/      editor and test helpers
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex]
 ```
 
-## Next: milestone 3
+## Next: milestone 4
 
-A building you can go into: the tavern as a scene with its door, beds, stairs and its own navigation mesh. A resident walks in through the door, up the stairs and lies on a bed, with no hand-placed waypoints. It becomes the pattern every other building follows.
+The clock: the time of day, a day counter and game speed.

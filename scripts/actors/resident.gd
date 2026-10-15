@@ -4,13 +4,21 @@ extends CharacterBody3D
 ## takes them over they are driven by the keyboard or walk to a clicked tile.
 ##
 ## All walking to a destination goes through the NavigationAgent3D, so routes follow the
-## navigation mesh exactly. The body faces +Z (heading 0 = facing south, as in the HTML game).
+## navigation mesh exactly, including up stairs and onto upper floors; their feet follow the
+## floor or step underneath them. The body faces +Z (heading 0 = facing south,
+## as in the HTML game).
+##
+## A resident can be sent to a bed (go_to_bed): they walk to its foot and lie down, and stay
+## there until they get up (get_up), are played, or are sent somewhere else.
 
 signal arrived
 
 const PLAYED_SPEED := 2.3          # m/s when a player walks them
 const RUN_FACTOR := 1.5            # Left Shift
 const ARRIVE_DIST := 0.08          # close enough to a destination (m)
+const LIE_TIME := 0.7              # seconds to lie down or get up
+const STEP_UP := 0.35              # the highest step they walk up without noticing (m)
+const FLOOR_MASK := 1              # the "world" layer: floors, stairs, walls, furniture
 
 var def: NpcDef
 var heading := 0.0                 # radians; forward is (sin h, cos h)
@@ -19,6 +27,8 @@ var controlled := false
 var drive := Vector2.ZERO
 var running := false
 var moving := false
+## The bed they are lying in or walking to.
+var bed: Bed = null
 
 var _goal = null                   # Vector3 destination on the map (wrapped), or null
 var _vel := Vector2.ZERO           # current ground velocity (x, z)
@@ -26,10 +36,14 @@ var _timer := 1.0                  # pause before the next stroll
 var _phase := 0.0                  # stride cycle
 var _walk_w := 0.0                 # how much of the stride shows (eases in and out)
 var _stuck := 0.0
+var _lying := false                # in bed, or getting in
+var _lie := 0.0                    # 0 standing .. 1 lying down
+var _stand_at := Vector3.ZERO      # where they got in (and will get out)
 
 @onready var agent: NavigationAgent3D = $Agent
 @onready var body: Node3D = $Body
 @onready var tag: Label3D = $Tag
+@onready var _collision: CollisionShape3D = $Collision
 @onready var _arm_l: Node3D = $Body/ArmL
 @onready var _arm_r: Node3D = $Body/ArmR
 @onready var _leg_l: Node3D = $Body/LegL
@@ -56,11 +70,13 @@ func _ready() -> void:
 	_animate(0.0)
 
 
-## Walk to a point on the map along the navigation mesh.
+## Walk to a point on the map along the navigation mesh. Its height picks the floor
+## (0 for the ground; an upper floor's height to go up the stairs).
 func walk_to(p: Vector3) -> void:
-	_goal = Vector3(Hex.wrap_x(p.x), 0.0, Hex.wrap_z(p.z))
-	_stuck = 0.0
-	_retarget()
+	if _lying or _lie > 0.0:
+		get_up()
+	_leave_bed_plan()
+	_set_goal(p)
 
 
 func stop() -> void:
@@ -75,27 +91,78 @@ func goal():
 	return _goal
 
 
-## Hand the resident back to their own routine.
+func is_lying() -> bool:
+	return _lie > 0.0
+
+
+## Walk to a bed and lie down in it. False if someone else has it.
+func go_to_bed(b: Bed) -> bool:
+	if b == null or not b.is_free_for(self) or (_lie > 0.0 and bed != b):
+		return false
+	_leave_bed_plan()
+	bed = b
+	b.occupant = self
+	if _lie > 0.0:
+		return true
+	_set_goal(b.stand_point())
+	return true
+
+
+## Lie down in the bed at hand (within reach of its foot), or get up if lying.
+func toggle_bed(b: Bed) -> void:
+	if _lying:
+		get_up()
+	elif b and b.is_free_for(self):
+		bed = b
+		b.occupant = self
+		_goal = null
+		_lie_down()
+
+
+## Get out of bed (if in one); they stand at its foot and the bed is free once they're up.
+func get_up() -> void:
+	if _lying:
+		_lying = false
+		_timer = 1.5 + randf() * 2.0
+
+
+## Hand the resident back to their own routine. If they're in bed they stay there.
 func release() -> void:
 	controlled = false
 	drive = Vector2.ZERO
 	running = false
-	_goal = null
+	if not _lying:
+		_goal = null
+		_leave_bed_plan()
 	_timer = 2.2
 
 
 func take_over() -> void:
 	controlled = true
-	_goal = null
+	if not _lying:
+		_goal = null
+		_leave_bed_plan()
+
+
+func _set_goal(p: Vector3) -> void:
+	_goal = Vector3(Hex.wrap_x(p.x), p.y, Hex.wrap_z(p.z))
+	_stuck = 0.0
+	_retarget()
 
 
 # aim the agent at whichever copy of the goal is nearest, so routes cross the seam when that is shorter
 func _retarget() -> void:
 	agent.target_position = Vector3(
-		Hex.near_copy_x(_goal.x, position.x), 0.0, Hex.near_copy_z(_goal.z, position.z))
+		Hex.near_copy_x(_goal.x, position.x), _goal.y, Hex.near_copy_z(_goal.z, position.z))
 
 
 func _physics_process(delta: float) -> void:
+	if _lying or _lie > 0.0:
+		if controlled and drive != Vector2.ZERO:
+			get_up()                           # a player who walks gets out of bed first
+		_bed_pose(delta)
+		_animate(delta)
+		return
 	if not controlled:
 		_autonomy(delta)
 	var want := Vector2.ZERO
@@ -103,6 +170,7 @@ func _physics_process(delta: float) -> void:
 	var key_move := false
 	if controlled and drive != Vector2.ZERO:
 		_goal = null
+		_leave_bed_plan()
 		key_move = true
 		var f := drive.x
 		var s := drive.y
@@ -110,7 +178,7 @@ func _physics_process(delta: float) -> void:
 	elif _goal != null and NavigationServer3D.map_get_iteration_id(get_world_3d().navigation_map) > 0:
 		var to_goal := Hex.offset(position, _goal)
 		var d := to_goal.length()
-		if d < ARRIVE_DIST:
+		if d < ARRIVE_DIST and absf(_goal.y - position.y) < 0.5:
 			_arrive()
 		else:
 			if agent.is_navigation_finished():
@@ -124,13 +192,14 @@ func _physics_process(delta: float) -> void:
 			# no progress for a while (destination unreachable): give up there
 			_stuck = _stuck + delta if _vel.length() < 0.05 else 0.0
 			if _stuck > 1.0:
+				_leave_bed_plan()
 				_arrive()
 
 	# velocity eases toward the wanted speed, so starts, stops and turns are gradual
 	_vel += (want * speed - _vel) * minf(1.0, delta * 7.0)
 	velocity = Vector3(_vel.x, 0.0, _vel.y)
 	move_and_slide()
-	position.y = 0.0
+	_follow_floor(delta)
 	_wrap()
 
 	var sp := _vel.length()
@@ -146,12 +215,23 @@ func _physics_process(delta: float) -> void:
 	_animate(delta)
 
 
+# stand on whatever is underfoot: a building's floor, a stair step or an upper floor (anything
+# on the "world" layer no more than a step above the feet), or else the open ground at y = 0
+func _follow_floor(delta: float) -> void:
+	var from := position + Vector3.UP * STEP_UP
+	var q := PhysicsRayQueryParameters3D.create(from, position + Vector3.DOWN * 0.6, FLOOR_MASK)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	var floor_y := (hit.position as Vector3).y if not hit.is_empty() else 0.0
+	# ease onto each step rather than popping up it
+	position.y = move_toward(position.y, floor_y, delta * 3.0) if absf(floor_y - position.y) < STEP_UP + 0.05 else floor_y
+
+
 # crossed a seam: come back in on the other side, and re-aim at the goal from there
 func _wrap() -> void:
 	var wx := Hex.wrap_x(position.x)
 	var wz := Hex.wrap_z(position.z)
 	if wx != position.x or wz != position.z:
-		position = Vector3(wx, 0.0, wz)
+		position = Vector3(wx, position.y, wz)
 		if _goal != null:
 			_retarget()
 
@@ -159,14 +239,58 @@ func _wrap() -> void:
 func _arrive() -> void:
 	_goal = null
 	_stuck = 0.0
-	if not controlled:
+	if bed and bed.occupant == self and Hex.distance(position, bed.stand_point()) < 0.4:
+		_lie_down()
+	elif not controlled:
 		_timer = 1.5 + randf() * 3.5
 	arrived.emit()
 
 
+func _lie_down() -> void:
+	_lying = true
+	_stand_at = position
+	_vel = Vector2.ZERO
+	moving = false
+
+
+# they were heading for a bed but are going somewhere else now
+func _leave_bed_plan() -> void:
+	if bed and not _lying and _lie == 0.0:
+		_release_bed()
+
+
+func _release_bed() -> void:
+	if bed and bed.occupant == self:
+		bed.occupant = null
+	bed = null
+
+
+# ease between standing at the foot of the bed and lying on it, face up, head on the pillow
+func _bed_pose(delta: float) -> void:
+	if bed == null:
+		_lying = false
+		_lie = 0.0
+		return
+	_lie = clampf(_lie + (1.0 if _lying else -1.0) * delta / LIE_TIME, 0.0, 1.0)
+	var t := _lie * _lie * (3.0 - 2.0 * _lie)
+	var hd := bed.head_dir()
+	var stand_h := atan2(hd.x, hd.z)
+	var lie_pos := bed.global_position - hd * 0.5 + Vector3.UP * 0.17
+	position = _stand_at.lerp(lie_pos, t)
+	var standing := Quaternion(Vector3.UP, stand_h)
+	var lying := Basis(hd.cross(Vector3.UP), hd, Vector3.UP).get_rotation_quaternion()
+	body.quaternion = standing.slerp(lying, t)
+	_collision.disabled = _lie > 0.0
+	if _lie == 0.0:
+		# up again, at the foot of the bed facing it
+		heading = stand_h
+		position = _stand_at
+		_release_bed()
+
+
 # a stroll to a tile within wander_range, staying within home_radius of the start
 func _autonomy(delta: float) -> void:
-	if _goal != null:
+	if _goal != null or bed != null:
 		return
 	_timer -= delta
 	if _timer > 0.0:
@@ -176,7 +300,7 @@ func _autonomy(delta: float) -> void:
 		# left far from home (a player walked them off): head back
 		var back := Vector3(Hex.near_copy_x(home.x, position.x), 0.0, Hex.near_copy_z(home.z, position.z))
 		var t0 := Hex.tile_at(back.x + randf_range(-2.0, 2.0), back.z + randf_range(-2.0, 2.0))
-		walk_to(Hex.tile_pos(t0))
+		_set_goal(Hex.tile_pos(t0))
 		return
 	for attempt in 12:
 		var a := randf() * TAU
@@ -186,14 +310,15 @@ func _autonomy(delta: float) -> void:
 			continue
 		var t := Hex.tile_at(p.x, p.z)
 		if t >= 0 and not Game.tiles.has_flag(t, TileGrid.F_BLOCK):
-			walk_to(Hex.tile_pos(t))
+			_set_goal(Hex.tile_pos(t))
 			return
 	_timer = 1.0
 
 
 func _animate(delta: float) -> void:
 	_walk_w += ((1.0 if moving else 0.0) - _walk_w) * minf(1.0, delta * 8.0)
-	body.rotation.y = heading
+	if _lie == 0.0:
+		body.rotation = Vector3(0.0, heading, 0.0)
 	var a := _walk_w * sin(_phase) * 0.6
 	_arm_l.rotation.x = a
 	_arm_r.rotation.x = -a

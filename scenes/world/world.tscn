@@ -43,15 +43,17 @@ script = ExtResource("2_ground")
 [node name="WorldNav" type="Node3D" parent="."]
 script = ExtResource("6_nav")
 
+[node name="Buildings" type="Node3D" parent="."]
+
 [node name="Residents" type="Node3D" parent="."]
 
-[node name="Player" type="Node" parent="."]
+[node name="Player" type="Node" parent="." groups=["player"]]
 script = ExtResource("5_player")
 
 [node name="Markers" type="Node3D" parent="."]
 script = ExtResource("7_markers")
 
-[node name="CameraRig" type="Node3D" parent="."]
+[node name="CameraRig" type="Node3D" parent="." groups=["camera_rig"]]
 script = ExtResource("3_cam")
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]

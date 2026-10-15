@@ -21,6 +21,7 @@ const DIST_MIN := 5.0
 const DIST_MAX := 80.0
 const CLICK_SLOP := 6.0            # pixels of drag before a press stops counting as a click
 const PICK_MASK := 4               # the "picking" physics layer residents' Hit areas are on
+const WORLD_MASK := 1              # the "world" layer: building floors, stairs, walls, furniture
 
 var focus := Vector3.ZERO          # where the overview camera looks now (eases toward goal)
 var goal := Vector3.ZERO           # where it is heading; always on the map, wrapped
@@ -49,6 +50,11 @@ func _ready() -> void:
 		dist = 22.0
 	player.control_changed.connect(_on_control_changed)
 	_update_camera(0.0)
+
+
+## How far the view has blended into third person (0 first person .. 1 third person).
+func third_person_amount() -> float:
+	return _tp_blend if _fp_resident else 0.0
 
 
 func set_view(third: bool) -> void:
@@ -136,6 +142,12 @@ func _click(screen: Vector2) -> void:
 	if r and r != player.controlled:
 		player.possess(r)
 		return
+	if player.controlled:
+		# a floor inside a building (an upper floor, a stair): walk to exactly that spot
+		var f = floor_point(screen)
+		if f != null:
+			player.walk_to(f)
+			return
 	var p = ground_point(screen)
 	if p == null:
 		return
@@ -161,6 +173,24 @@ func pick_resident(screen: Vector2) -> Resident:
 	if hit.is_empty():
 		return null
 	return (hit.collider as Node).get_parent() as Resident
+
+
+## Where a screen point meets a building's floor, stair or upper floor, or null if it meets
+## the open ground (or a wall) first. Storeys faded out to look in at the resident are skipped.
+func floor_point(screen: Vector2):
+	var from := camera.project_ray_origin(screen)
+	var q := PhysicsRayQueryParameters3D.create(from, from + camera.project_ray_normal(screen) * 400.0, WORLD_MASK)
+	var skip: Array[RID] = []
+	for b in get_tree().get_nodes_in_group("buildings"):
+		skip.append_array((b as Building).peeled_bodies())
+	q.exclude = skip
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty() or (hit.normal as Vector3).y < 0.7:
+		return null
+	var g = ground_point(screen)
+	if g != null and from.distance_to(g) < from.distance_to(hit.position) - 0.01:
+		return null
+	return hit.position
 
 
 ## Where a screen point meets the ground (y = 0), or null if it points at the sky.
@@ -191,7 +221,7 @@ func _process(delta: float) -> void:
 
 func _update_camera(delta: float) -> void:
 	var ctrl := player.controlled
-	var target := Vector3(ctrl.position.x, 0.4, ctrl.position.z) if ctrl else goal
+	var target := ctrl.position + Vector3.UP * 0.4 if ctrl else goal
 	# the target crossed a seam: jump the whole rig by one world width (the world looks identical)
 	var jump := Vector3(roundf((target.x - focus.x) / Hex.WRAP) * Hex.WRAP, 0.0,
 		roundf((target.z - focus.z) / Hex.WRAP_Z) * Hex.WRAP_Z)

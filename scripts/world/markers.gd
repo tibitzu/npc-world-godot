@@ -47,11 +47,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	var ctrl := player.controlled
 	var t := Time.get_ticks_msec() / 1000.0
-	_ring.visible = ctrl != null and ctrl.body.visible
+	_ring.visible = ctrl != null and ctrl.body.visible and not ctrl.is_lying()
 	if _ring.visible:
-		_ring.position = Vector3(ctrl.position.x, 0.045, ctrl.position.z)
+		_ring.position = Vector3(ctrl.position.x, ctrl.position.y + 0.045, ctrl.position.z)
 		_ring.rotation.y = t * 0.8
-	_hover.visible = ctrl != null and _hover_tile >= 0
+	# a tile outline only on the open ground (inside a building you click the floor itself)
+	_hover.visible = ctrl != null and _hover_tile >= 0 and not Game.tiles.has_flag(_hover_tile, TileGrid.F_BLOCK)
 	if _hover.visible:
 		_hover.position = Vector3(Hex.near_copy_x(Hex.tile_x(_hover_tile), _hover_point.x), 0.03,
 			Hex.near_copy_z(Hex.tile_z(_hover_tile), _hover_point.z))

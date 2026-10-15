@@ -100,6 +100,26 @@ static func tile_at(x: float, z: float) -> int:
 	return best
 
 
+## Every tile whose centre lies in a world rectangle (x, z), which may cross a seam.
+static func tiles_in(r: Rect2) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var r0 := floori((r.position.y + OFF_Z) / DZ)
+	var r1 := ceili((r.end.y + OFF_Z) / DZ)
+	for rr in range(r0, r1 + 1):
+		var row := posmod(rr, ROWS)
+		var shift_z := (rr - row) * DZ
+		var c0 := floori((r.position.x + OFF_X) / DX) - 1
+		var c1 := ceili((r.end.x + OFF_X) / DX) + 1
+		for cc in range(c0, c1 + 1):
+			var col := posmod(cc, COLS)
+			var i := row * COLS + col
+			var x := tile_x(i) + (cc - col) * DX
+			var z := tile_z(i) + shift_z
+			if r.has_point(Vector2(x, z)):
+				out.append(i)
+	return out
+
+
 ## The six neighbours of a tile, wrapping at the seams.
 static func neighbours(i: int) -> PackedInt32Array:
 	var c := i % COLS
