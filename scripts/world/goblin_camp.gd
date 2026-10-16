@@ -4,6 +4,9 @@ extends Node3D
 ## goblins loaf about it. Every few nights (the first on the second night) a raiding party sets
 ## out at dusk, marches on the town and prowls it for anyone out of doors; at dawn the survivors
 ## go home. The camp makes up its numbers again each noon.
+##
+## The band answers to a chief down in the lair under the camp (see GoblinLair). Once he's dead
+## the raids stop and the camp is no longer made up.
 
 @export var spot := Vector2(46.0, -30.0)
 @export var band := 5
@@ -15,6 +18,10 @@ const MONSTER := preload("res://scripts/actors/monster.gd")
 
 var goblins: Array[Monster] = []
 var raiding := false
+## Counts the raids (the alarm bell is rung once for each).
+var raid_no := 0
+## The chief is dead: no more raids.
+var leaderless := false
 var _next_raid_day := 2
 var _refilled_day := 0
 var _announced := false
@@ -89,8 +96,9 @@ func _process(_delta: float) -> void:
 	var day := Game.day_number(position.x)
 	goblins = goblins.filter(func(g: Monster) -> bool: return is_instance_valid(g))
 	var alive := goblins.filter(func(g: Monster) -> bool: return not g.dead)
-	if not raiding and day >= _next_raid_day and h >= 19.0:
+	if not raiding and not leaderless and day >= _next_raid_day and h >= 19.0:
 		raiding = true
+		raid_no += 1
 		_announced = false
 		var party := alive.slice(0, raiders)
 		for k in party.size():
@@ -113,9 +121,20 @@ func _process(_delta: float) -> void:
 			if _announced:
 				Events.town_event.emit("The goblins have gone." if out.is_empty() or alive.size() > 0 else "The raid is over.")
 	# made up again at noon
-	if not raiding and h >= 12.0 and h < 13.0 and _refilled_day != day:
+	if not raiding and not leaderless and h >= 12.0 and h < 13.0 and _refilled_day != day:
 		_refilled_day = day
 		_refill()
+
+
+## The chief has been killed: any raid going on breaks off, and there won't be another.
+func chief_slain() -> void:
+	if leaderless:
+		return
+	leaderless = true
+	for g in goblins:
+		if is_instance_valid(g) and not (g as Monster).dead and (g as Monster).is_raiding():
+			(g as Monster).go_home()
+	Events.town_event.emit("With their chief dead, the goblins won't raid the town again.")
 
 
 ## Goblins out raiding now (for the guards to look out for).

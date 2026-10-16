@@ -151,6 +151,14 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - Happiness now slips more slowly, and a good night's sleep lifts it a little.
 - The goblins are `scripts/actors/monster.gd`, their camp and the raids `scripts/world/goblin_camp.gd`; residents' fighting is in `scripts/actors/resident.gd`, the weapons in `Gear.WEAPONS`.
 
+**Milestone 14, the bell and the goblins' lair**
+- **The alarm bell**: a bronze bell in a timber frame on the square, west of the well. When a raid comes, the guard on watch (whichever guard is on duty) spots it coming down the road, runs to the bell ("Raiders! To the bell!") and rings it. You can ring it too: F beside it.
+- **The alarm**: while it's up (for as long as the raid lasts, or a couple of hours if it's rung with no raid on), everyone who isn't a guard hurries home and stays in ("The bell! Inside, quick!"), and both guards turn out for raiders anywhere in town, the one off duty getting out of bed for it. The cards say Running to ring the bell, Hurrying indoors and Sheltering indoors.
+- **The goblins' lair, The Black Warrens**: a small stone gatehouse just north of the camp, with a stair down to a warren of rooms and winding tunnels 3 m underground (about 34 m across, built the way the HTML game builds its dungeons, from a fixed seed so it's the same every game). Torches on the walls, bones and rubble about, barrels and chests in the side rooms, and at the far end the chief's hall: pillars, braziers and an altar.
+- **Down there**: twelve goblins walk the tunnels and go for anyone who comes down (they don't run, and don't follow you up the stair). Their **chief**, bigger, crowned, with a cleaver and buckler (90 health, hits hard), paces before his altar. Kill him and the raids stop for good: "With their chief dead, the goblins won't raid the town again."
+- While you're playing someone underground, the grass over the lair is left out so the camera can see in, the torches light up, and clicks walk you about the lair's floor. From above, only the stairwell shows through the gatehouse arch.
+- The bell is `scripts/world/bell.gd`, the lair `scripts/world/goblin_lair.gd` (its layout, its navigation mesh, and the goblins it starts with); the lair goblins and the chief are `Monster`s with `in_lair` / `chief` set.
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -181,7 +189,7 @@ A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is eas
 | Look up and down | Drag |
 | Walk to a tile | Click it (the tile under the cursor is outlined) |
 | Walk somewhere inside | Click the floor |
-| Lie down / get up, or the work at hand | F (the hint on screen says what it'll do) |
+| Lie down / get up, or the work at hand (including ringing the alarm bell) | F (the hint on screen says what it'll do) |
 | Say something | Enter, type, Enter (Esc cancels) |
 | Strike (at a goblin in front) | Space |
 | First / third person | Scroll, T, or the button |
@@ -233,6 +241,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 14
+## Next: milestone 15
 
-The bell and the goblins' lair: the guard on watch rings a bell on the square when a raid comes and everyone hurries indoors; and a way down from the goblin camp into a warren of tunnels where the band keeps its chief, for a resident to fight through and end the raids, as in the HTML game's dungeons.
+Treasure and trade, as in the HTML game: the chests in the lair hold gems, weapons, potions and coin; each resident carries what they find, can use or wear it (a better weapon, a healing potion), and can sell it to Tilda at the general store.

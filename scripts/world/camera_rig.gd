@@ -155,7 +155,7 @@ func _click(screen: Vector2) -> void:
 		var t := Hex.tile_at(p.x, p.z)
 		if t >= 0 and not Game.tiles.has_flag(t, TileGrid.F_BLOCK):
 			# the tile centre, in the copy of the world nearest the click
-			player.walk_to(Vector3(Hex.near_copy_x(Hex.tile_x(t), p.x), 0.0, Hex.near_copy_z(Hex.tile_z(t), p.z)))
+			player.walk_to(Vector3(Hex.near_copy_x(Hex.tile_x(t), p.x), p.y, Hex.near_copy_z(Hex.tile_z(t), p.z)))
 	else:
 		goal = Vector3(Hex.wrap_x(p.x), 0.0, Hex.wrap_z(p.z))
 
@@ -183,6 +183,10 @@ func floor_point(screen: Vector2):
 	var skip: Array[RID] = []
 	for b in get_tree().get_nodes_in_group("buildings"):
 		skip.append_array((b as Building).peeled_bodies())
+	# from above ground, the goblins' lair (under the grass) can't be clicked on
+	var lair := get_tree().get_first_node_in_group("goblin_lair") as GoblinLair
+	if lair and not lair.under:
+		skip.append(lair.rock_body())
 	q.exclude = skip
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	if hit.is_empty() or (hit.normal as Vector3).y < 0.7:
@@ -193,13 +197,18 @@ func floor_point(screen: Vector2):
 	return hit.position
 
 
-## Where a screen point meets the ground (y = 0), or null if it points at the sky.
+## Where a screen point meets the ground (y = 0; down in the goblins' lair, its floor), or null
+## if it points at the sky.
 func ground_point(screen: Vector2):
 	var from := camera.project_ray_origin(screen)
 	var dir := camera.project_ray_normal(screen)
 	if dir.y >= -0.0001:
 		return null
-	return from + dir * (-from.y / dir.y)
+	var lair := get_tree().get_first_node_in_group("goblin_lair") as GoblinLair
+	var level := GoblinLair.FLOOR_Y if lair and lair.under else 0.0
+	if from.y <= level:
+		return null
+	return from + dir * ((level - from.y) / dir.y)
 
 
 func _process(delta: float) -> void:

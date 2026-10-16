@@ -16,6 +16,8 @@
 [ext_resource type="Script" path="res://scripts/world/lamp_posts.gd" id="14_lamps"]
 [ext_resource type="Script" path="res://scripts/world/well.gd" id="15_well"]
 [ext_resource type="Script" path="res://scripts/world/goblin_camp.gd" id="16_camp"]
+[ext_resource type="Script" path="res://scripts/world/bell.gd" id="17_bell"]
+[ext_resource type="Script" path="res://scripts/world/goblin_lair.gd" id="18_lair"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -67,8 +69,14 @@ script = ExtResource("14_lamps")
 [node name="Well" type="Node3D" parent="."]
 script = ExtResource("15_well")
 
+[node name="AlarmBell" type="Node3D" parent="."]
+script = ExtResource("17_bell")
+
 [node name="GoblinCamp" type="Node3D" parent="."]
 script = ExtResource("16_camp")
+
+[node name="GoblinLair" type="Node3D" parent="."]
+script = ExtResource("18_lair")
 
 [node name="Roadworks" type="Node3D" parent="."]
 script = ExtResource("11_works")

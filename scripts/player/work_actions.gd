@@ -10,6 +10,7 @@ extends RefCounted
 ##   at the general store's till       mind the shop (or stop)
 ##   by a street lamp                  light it, or put it out
 ##   by a standing tree                fell it (it takes a few seconds)
+##   at the alarm bell                 ring it (everyone indoors, the guards out)
 ##   at the well                       have a drink
 ##   in front of an oven               have a meal
 ##
@@ -73,6 +74,11 @@ static func find(r: Resident) -> Dictionary:
 				return {"label": "Put out the lamp" if lit else "Light the lamp", "run": func() -> void:
 					r.start_action("light", "pole", 1.0 if lit else 1.6, lp, func() -> void:
 						lamps.set_lit(i, not lit))}
+	# the alarm bell
+	var bell := AlarmBell.find(tree)
+	if bell and _close(here, bell.position, 1.6):
+		return {"label": "Ring the alarm bell", "run": func() -> void:
+			bell.ring(r)}
 	# the well
 	var well := tree.get_first_node_in_group("well") as Well
 	if well and _close(here, well.position, Well.RING_R + 1.0) and r.needs.thirst < 97.0:

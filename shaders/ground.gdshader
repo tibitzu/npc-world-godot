@@ -20,10 +20,24 @@ const float OFF_Z = (ROWS - 1.0) * DZ / 2.0;
 const float WRAP = COLS * DX;
 const float WRAP_Z = ROWS * DZ;
 
+// holes in the ground (x0, z0, x1, z1): the goblins' stairwell always, and the ground over their
+// whole lair while you're playing someone down there
+uniform vec4 hole = vec4(0.0);
+uniform vec4 cutaway = vec4(0.0);
+uniform bool cut_on = false;
+
 varying vec3 world_pos;
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+bool in_rect(vec2 p, vec4 r) {
+	vec2 c = (r.xy + r.zw) * 0.5;
+	vec2 h = (r.zw - r.xy) * 0.5;
+	vec2 d = p - c;
+	d -= vec2(WRAP, WRAP_Z) * round(d / vec2(WRAP, WRAP_Z));
+	return abs(d.x) < h.x && abs(d.y) < h.y;
 }
 
 int wrap_i(int v, int n) {
@@ -35,6 +49,9 @@ void fragment() {
 	// and working unfolded keeps the seam free of any line
 	float x = world_pos.x;
 	float z = world_pos.z;
+	if (in_rect(world_pos.xz, hole) || (cut_on && in_rect(world_pos.xz, cutaway))) {
+		discard;
+	}
 	vec3 col;
 	if (!show_hex) {
 		vec2 uv = vec2(((x + OFF_X) / DX + 0.25) / COLS, ((z + OFF_Z) / DZ + 0.5) / ROWS);

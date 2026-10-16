@@ -123,6 +123,12 @@ var _fighting := false
 var _fleeing := false
 const GUARD_RANGE := 30.0          # how far the guards turn out for a raider
 const TO_ARMS := ["To arms! Goblins!", "Raiders! Stay indoors!", "Here they come. Stay behind me."]
+const ALARM_RANGE := 90.0          # ...and how far once the alarm bell has rung (the whole town)
+const BELL_SPOT := 45.0            # how near a raider has to be for the guard on watch to run for the bell
+const TO_BELL := ["Raiders! To the bell!", "Goblins on the road! Sound the alarm!"]
+const SHELTER := ["The bell! Inside, quick!", "Goblins? I'm off home.", "Not again. Lock the door!", "Indoors, indoors!"]
+var _sheltering := false           # gone indoors while the alarm is up
+var _to_bell := false              # the guard on watch, running to ring the bell
 ## Game time (Game.world_time) before which they won't pipe up on their own again.
 var next_speak := 0.0
 var _wp := 0                       # which point of it they're heading for
@@ -410,6 +416,8 @@ func sleep_time() -> bool:
 func status() -> String:
 	if dead:
 		return "Dead"
+	if _to_bell:
+		return "Running to ring the bell"
 	if _fighting:
 		return "Fighting"
 	if _fleeing:
@@ -420,6 +428,8 @@ func status() -> String:
 		return "Asleep" if sleep_time() else "In bed"
 	if bed:
 		return "Heading home" if Hex.distance(position, bed.stand_point()) > 12.0 else "Going to bed"
+	if _sheltering:
+		return "Sheltering indoors" if _indoors() else "Hurrying indoors"
 	if _errand != "":
 		return "Getting a drink" if _errand == "drink" else "Having a meal"
 	if _job_active and job:
@@ -475,7 +485,7 @@ func _physics_process(delta: float) -> void:
 	_drain_needs(delta)
 	_cool = maxf(0.0, _cool - delta)
 	# a guard asleep with raiders about gets up
-	if not controlled and _is_guard() and (_lying or _lie > 0.0) and _lying and _nearest_raider(GUARD_RANGE) != null:
+	if not controlled and _is_guard() and _lying and _nearest_raider(_guard_range()) != null:
 		get_up()
 		say(pick_fresh(TO_ARMS))
 	if _say_left > 0.0:
@@ -505,6 +515,9 @@ func _physics_process(delta: float) -> void:
 	if not controlled and _combat_step(delta):
 		if job and job.working:
 			job.finish()
+	elif not controlled and _shelter_step():
+		if job and job.working:
+			job.finish()
 	elif not controlled:
 		# an errand under way is finished first; a very urgent need takes them off work
 		var urgent: bool = needs.thirst < NEED_URGENT or needs.hunger < NEED_URGENT
@@ -516,6 +529,8 @@ func _physics_process(delta: float) -> void:
 			_autonomy(delta)
 	var want := Vector2.ZERO
 	var speed := PLAYED_SPEED * (RUN_FACTOR if running else 1.0) if controlled else (work_speed if work_speed > 0.0 else def.speed)
+	if not controlled and (_to_bell or _fleeing or (_sheltering and not _indoors())):
+		speed = maxf(speed, def.speed) * 1.6     # running
 	var key_move := false
 	if controlled and drive != Vector2.ZERO:
 		_goal = null
@@ -750,7 +765,7 @@ func strike() -> void:
 	var bd: float = w.reach + 0.3
 	for m in get_tree().get_nodes_in_group("monsters"):
 		var mo := m as Monster
-		if mo.dead:
+		if mo.dead or absf(mo.position.y - position.y) > 1.0:
 			continue
 		var to := Hex.offset(position, mo.position)
 		var d := to.length()
@@ -766,7 +781,7 @@ func _nearest_raider(within: float) -> Monster:
 	var bd := within
 	for m in get_tree().get_nodes_in_group("monsters"):
 		var mo := m as Monster
-		if not mo.is_raiding() or absf(mo.position.y - position.y) > 1.0:
+		if not mo.is_hostile() or absf(mo.position.y - position.y) > 1.0:
 			continue
 		var d := Hex.distance(position, mo.position)
 		if d < bd:
@@ -777,9 +792,11 @@ func _nearest_raider(within: float) -> Monster:
 
 # fighting (or running away), for a resident nobody is playing; true while it has them
 func _combat_step(_delta: float) -> bool:
+	if _is_guard() and _bell_duty():
+		return true
 	var foe: Monster = null
 	if _is_guard():
-		foe = _nearest_raider(GUARD_RANGE)
+		foe = _nearest_raider(_guard_range())
 	else:
 		# hit back at whoever's hitting them (or squares up to them)
 		var near := _nearest_raider(4.0)
@@ -825,6 +842,79 @@ func _combat_step(_delta: float) -> bool:
 			_cool = w.cd
 			_strike = 0.001
 			foe.hurt(randi_range(w.dmg.x, w.dmg.y), self)
+	return true
+
+
+func _guard_range() -> float:
+	return ALARM_RANGE if AlarmBell.alarm(get_tree()) else GUARD_RANGE
+
+
+func _indoors() -> bool:
+	for b in get_tree().get_nodes_in_group("buildings"):
+		if (b as Building).is_inside(position):
+			return true
+	return false
+
+
+# The guard on watch (on duty, up and about) who spots a raider runs to the bell and rings it,
+# once a raid, unless one is right on top of him; true while he's on his way.
+func _bell_duty() -> bool:
+	var bell := AlarmBell.find(get_tree())
+	if bell == null or _lying or bell.rung_for_this_raid() or job == null \
+			or not (_to_bell or job.on_duty(Game.local_hours(position.x))):
+		_to_bell = false
+		return false
+	if not _to_bell:
+		var seen := _nearest_raider(BELL_SPOT)
+		if seen == null or _another_guard_running():
+			return false
+		_to_bell = true
+		say(pick_fresh(TO_BELL))
+	var close := _nearest_raider(1.6)
+	if close and close.target == self:
+		return false                             # fight first
+	var stand := bell.stand_point()
+	if Hex.distance(position, stand) < 0.6:
+		_to_bell = false
+		_goal = null
+		bell.ring(self)
+		return true
+	if _goal == null or Hex.distance(_goal, stand) > 0.3:
+		_set_goal(_snap(stand))
+	return true
+
+
+func _another_guard_running() -> bool:
+	for o in get_tree().get_nodes_in_group("residents"):
+		if o != self and (o as Resident)._to_bell:
+			return true
+	return false
+
+
+# With the alarm up, anyone who isn't a guard goes home (to beside their bed) and stays in until
+# it's over; true while it has them.
+func _shelter_step() -> bool:
+	if _is_guard() or not AlarmBell.alarm(get_tree()):
+		if _sheltering:
+			_sheltering = false
+			_goal = null
+			_timer = randf_range(1.0, 4.0)
+		return false
+	if bed != null or _lying or _lie > 0.0:
+		return false                             # in bed (or on the way): safe enough
+	var b := _nearest_free_bed()
+	if b == null:
+		return false
+	var spot := _snap(b.stand_point())
+	if not _sheltering:
+		_sheltering = true
+		_errand = ""
+		_end_action(false)
+		if not _indoors():
+			say(pick_fresh(SHELTER))
+		_set_goal(spot)
+	elif _goal == null and Hex.distance(position, spot) > 1.0 and not _indoors():
+		_set_goal(spot)
 	return true
 
 
@@ -970,7 +1060,7 @@ func _bedtime_soon() -> bool:
 
 # bedtime and morning, for a resident nobody is playing
 func _routine(delta: float) -> void:
-	if _fighting or _fleeing or (_is_guard() and _nearest_raider(GUARD_RANGE) != null):
+	if _fighting or _fleeing or _to_bell or (_is_guard() and _nearest_raider(_guard_range()) != null):
 		return                                   # no going to bed with goblins about
 	# worn out: a nap, whatever the time, until they're rested
 	if needs.fatigue < 12.0 and not _napping:
