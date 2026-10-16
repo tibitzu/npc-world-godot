@@ -134,6 +134,11 @@ var _to_bell := false              # the guard on watch, running to ring the bel
 ## Their coins and things (see Items): gold, silver and a list of item keys; and what they have
 ## on: a weapon in hand ("" for the tool of their trade), a ring, a cloak.
 var bag := {"gold": 0, "silver": 0, "items": []}
+## Known to the town: everyone is, but the wizard only once someone has found him and said hello
+## (see meet). Until then he can't be played and has no card.
+var known := true
+const HELLO := ["Visitors? Here? Well, well. Come in, {n}, and mind the runes.",
+	"Ah, {n}. The stars said someone would come. You may call me Orrin.", "Hm? Oh! A guest. Orrin, at your service, {n}."]
 var equip := {"hand": "", "ring": "", "back": ""}
 var _might_until := -1.0           # the elixir of strength lasts until this game time
 var _potion_at := -99.0
@@ -161,6 +166,7 @@ func setup(d: NpcDef) -> void:
 	position = Vector3(d.start.x, 0.0, d.start.y)
 	heading = randf() * TAU
 	bag.gold = d.gold
+	known = not d.hidden
 	_timer = 0.5 + randf() * 2.0
 
 
@@ -171,7 +177,7 @@ func _ready() -> void:
 	for p in [$Body/Torso, $Body/ArmL/Mesh, $Body/ArmR/Mesh]:
 		(p as MeshInstance3D).material_override = cloth
 	Gear.dress(body, def)
-	tag.text = def.display_name.to_upper()
+	tag.text = def.display_name.to_upper() if known else "A WIZARD?"
 	tag.modulate = Look.html_colour(def.colour).lightened(0.35)
 	_animate(0.0)
 	job = Job.make(self)
@@ -920,6 +926,7 @@ func strike() -> void:
 	_cool = w.cd
 	_strike = 0.001
 	var fwd := Vector3(sin(heading), 0, cos(heading))
+	var ranged: bool = w.get("ranged", false)
 	var best: Monster = null
 	var bd: float = w.reach + 0.3
 	for m in get_tree().get_nodes_in_group("monsters"):
@@ -928,11 +935,27 @@ func strike() -> void:
 			continue
 		var to := Hex.offset(position, mo.position)
 		var d := to.length()
-		if d < bd and (d < 0.6 or fwd.dot(to / d) > 0.2):
+		# a bolt goes where you're facing (give or take); a blow can catch one beside you
+		if d < bd and (d < 0.6 or fwd.dot(to / d) > (0.75 if ranged else 0.2)) and (not ranged or _clear_shot(mo)):
 			bd = d
 			best = mo
 	if best:
-		best.hurt(randi_range(w.dmg.x, w.dmg.y), self)
+		_hit(best, w)
+
+
+# a blow, or a bolt of light from a staff
+func _hit(m: Monster, w: Dictionary) -> void:
+	var dmg := randi_range(w.dmg.x, w.dmg.y)
+	if w.get("ranged", false):
+		LightBolt.throw(global_position + Vector3(sin(heading) * 0.4, 1.55, cos(heading) * 0.4), m, dmg, self)
+	else:
+		m.hurt(dmg, self)
+
+
+# nothing solid between them and a monster (for a bolt)
+func _clear_shot(m: Monster) -> bool:
+	var q := PhysicsRayQueryParameters3D.create(position + Vector3.UP * 1.2, m.position + Vector3.UP * 0.6, FLOOR_MASK)
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 func _nearest_raider(within: float) -> Monster:
@@ -992,7 +1015,7 @@ func _combat_step(_delta: float) -> bool:
 			say(pick_fresh(TO_ARMS))
 	var w := weapon()
 	var d := Hex.distance(position, foe.position)
-	if d > w.reach * 0.85:
+	if d > w.reach * 0.85 or (w.get("ranged", false) and not _clear_shot(foe)):
 		if _goal == null or Hex.distance(_goal, foe.position) > 0.8:
 			_set_goal(foe.position)
 	else:
@@ -1002,7 +1025,7 @@ func _combat_step(_delta: float) -> bool:
 		if _cool <= 0.0:
 			_cool = w.cd
 			_strike = 0.001
-			foe.hurt(randi_range(w.dmg.x, w.dmg.y), self)
+			_hit(foe, w)
 	return true
 
 
@@ -1077,6 +1100,21 @@ func _shelter_step() -> bool:
 	elif _goal == null and Hex.distance(position, spot) > 1.0 and not _indoors():
 		_set_goal(spot)
 	return true
+
+
+## Someone has found them and said hello (by: who): from now on they're one of the residents.
+func meet(by: Resident) -> void:
+	if known:
+		return
+	known = true
+	tag.text = def.display_name.to_upper()
+	if _lying or _lie > 0.0:
+		get_up()
+	stop_to_talk(by, 5.0)
+	say(Conversations.fill(_pick(PackedStringArray(HELLO)), by))
+	by.say_later("Pleased to meet you, %s." % def.display_name, 2.0)
+	cheer(15.0)
+	Events.town_event.emit("%s met %s the %s in his tower. He can be played now." % [by.def.display_name, def.display_name, def.role.to_lower()])
 
 
 ## Cheer up (talking, eating, drinking).
@@ -1298,7 +1336,7 @@ func _autonomy(delta: float) -> void:
 		var t0 := Hex.tile_at(back.x + randf_range(-2.0, 2.0), back.z + randf_range(-2.0, 2.0))
 		_set_goal(Hex.tile_pos(t0))
 		return
-	if ShopJob.is_open() and def.job != "shop" and randf() < 0.12:
+	if ShopJob.is_open() and def.job != "shop" and randf() < 0.12 and Hex.distance(position, ShopJob.customer_spot()) < 70.0:
 		# drop into the general store while it's open
 		var c := ShopJob.customer_spot() + Vector3(randf_range(-0.4, 0.4), 0.0, 0.0)
 		_set_goal(Vector3(Hex.near_copy_x(c.x, position.x), c.y, Hex.near_copy_z(c.z, position.z)))

@@ -14,6 +14,11 @@ extends Node3D
 ## Keep clear of a circle round the cabin (centre, radius) so its yard stays open.
 @export var keep_clear := Vector3(-68.2, -68.2, 8.5)
 @export var spacing := 2.3
+## The seed the trees are laid out from.
+@export var layout_seed := 7_2024
+## Brann's woods, where trees are felled (another stand, like the old woods round the wizard's
+## tower, is only scenery: nobody fells those).
+@export var for_felling := true
 ## Game seconds before a felled tree has grown back (a day and a half).
 @export var regrow_after := 180.0
 
@@ -33,7 +38,8 @@ var _blocked: Array = []
 
 
 func _ready() -> void:
-	add_to_group("forest")
+	if for_felling:
+		add_to_group("forest")
 	_bark = _mat(0x5e3d24)
 	_needles = _mat(0x2f5a2c)
 	_needles_dark = _mat(0x24472a)
@@ -46,7 +52,7 @@ func _ready() -> void:
 	_log_mesh.rings = 1
 	_log_mesh.material = _bark
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 7_2024
+	rng.seed = layout_seed
 	var spots: Array[Vector3] = []
 	for attempt in trees_wanted * 30:
 		if spots.size() >= trees_wanted:

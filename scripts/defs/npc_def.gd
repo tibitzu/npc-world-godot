@@ -59,3 +59,6 @@ extends Resource
 @export var hp_max := 100.0
 ## Gold coins they start with (as in the HTML game).
 @export var gold := 0
+## Unknown to the town until someone finds them and talks to them (the wizard): until then they
+## can't be played and have no card on the roster.
+@export var hidden := false

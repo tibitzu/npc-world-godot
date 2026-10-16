@@ -10,6 +10,7 @@ extends RefCounted
 ##   at the general store's till       mind the shop (or stop)
 ##   by a street lamp                  light it, or put it out
 ##   by a standing tree                fell it (it takes a few seconds)
+##   by the wizard (not yet met)       say hello (then he can be played)
 ##   by a chest in the goblins' lair   open it and take what's inside
 ##   at the store's counter            trade with Tilda (while she's at the till)
 ##   at the alarm bell                 ring it (everyone indoors, the guards out)
@@ -76,6 +77,12 @@ static func find(r: Resident) -> Dictionary:
 				return {"label": "Put out the lamp" if lit else "Light the lamp", "run": func() -> void:
 					r.start_action("light", "pole", 1.0 if lit else 1.6, lp, func() -> void:
 						lamps.set_lit(i, not lit))}
+	# someone the town doesn't know yet (the wizard, at home in his tower): say hello
+	for o in tree.get_nodes_in_group("residents"):
+		var stranger := o as Resident
+		if stranger != r and not stranger.known and not stranger.dead and _close(here, stranger.position, 1.8):
+			return {"label": "Wake the wizard and say hello" if stranger.is_lying() else "Say hello to the wizard", "run": func() -> void:
+				stranger.meet(r)}
 	# a chest in the goblins' lair
 	var lair := tree.get_first_node_in_group("goblin_lair") as GoblinLair
 	if lair and here.y < -1.0:

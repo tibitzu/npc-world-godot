@@ -26,6 +26,9 @@ func possess(r: Resident) -> void:
 	if r.dead:
 		Events.town_event.emit("%s is dead. A new game will bring them back." % r.def.display_name)
 		return
+	if not r.known:
+		Events.town_event.emit("Nobody in town knows who that is. Find him at home and say hello first.")
+		return
 	if controlled:
 		controlled.release()
 	controlled = r

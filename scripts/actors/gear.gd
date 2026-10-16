@@ -10,8 +10,8 @@ extends RefCounted
 
 const HEAD_DROP := 0.07
 
-const HATS := ["strawhat", "couriercap", "tophat", "beanie", "headscarf", "guardhelm"]
-const TOOLS := ["trowel", "lanternpole", "fellingaxe", "guardspear", "cudgel"]
+const HATS := ["strawhat", "couriercap", "tophat", "beanie", "headscarf", "guardhelm", "wizhat"]
+const TOOLS := ["trowel", "lanternpole", "fellingaxe", "guardspear", "cudgel", "wizstaff"]
 ## What each tool does as a weapon: damage per hit (low, high), reach (m) and seconds between blows.
 const WEAPONS := {
 	"": {"name": "Fists", "dmg": Vector2i(2, 4), "reach": 1.5, "cd": 0.6},
@@ -20,6 +20,8 @@ const WEAPONS := {
 	"fellingaxe": {"name": "Felling axe", "dmg": Vector2i(5, 9), "reach": 1.8, "cd": 1.2},
 	"guardspear": {"name": "Spear", "dmg": Vector2i(5, 9), "reach": 2.5, "cd": 1.0},
 	"cudgel": {"name": "Cudgel", "dmg": Vector2i(3, 6), "reach": 1.6, "cd": 0.9},
+	# the wizard's staff throws bolts of light (ranged: a bolt flies to whatever it's aimed at)
+	"wizstaff": {"name": "Oak staff", "dmg": Vector2i(5, 9), "reach": 8.0, "cd": 1.2, "ranged": true},
 }
 const SHOE_COLOURS := {"clogs": 0xb08a4a, "runshoes": 0xe6e2da, "buckleshoes": 0x24222b, "workboots": 0x5a3a22, "guardboots": 0x2a1d14}
 
@@ -89,6 +91,18 @@ static func dress(body: Node3D, def: NpcDef) -> void:
 		match e:
 			"beard":
 				_put(g, _box(Vector3(0.2, 0.12, 0.08)), mat(0x6b3f22, 1.0), Vector3(0, 0.745 - HEAD_DROP, 0.115))
+			"beard_white":
+				# a long white beard, down to the chest
+				_put(g, _cyl(0.1, 0.02, 0.32, 8), mat(0xeeeae2, 1.0), Vector3(0, 0.63 - HEAD_DROP, 0.12), Vector3(0.12, 0, 0), Vector3(1, 1, 0.6))
+			"robe":
+				# a long starry robe to the ankles
+				_put(g, _cyl(0.16, 0.27, 0.6, 14), mat(0x34407a, 1.0), Vector3(0, 0.33, 0))
+				var star := mat(0xd8b25a, 0.4, 0.5)
+				for i in 6:
+					var a := i * 2.39
+					var yy := 0.12 + fmod(i * 0.083, 0.42)
+					var rr := 0.27 - (yy - 0.03) / 0.6 * 0.11 + 0.005
+					_put(g, _box(Vector3(0.03, 0.03, 0.01)), star, Vector3(sin(a) * rr, yy, cos(a) * rr), Vector3(0, a, 0.78))
 			"apron":
 				_put(g, _box(Vector3(0.21, 0.3, 0.02)), mat(0xe8b85a, 1.0), Vector3(0, 0.38, 0.155), Vector3(-0.08, 0, 0))
 				_put(g, _box(Vector3(0.24, 0.025, 0.31)), mat(0xe8b85a, 1.0), Vector3(0, 0.52, 0.0))
@@ -144,6 +158,16 @@ static func _hat(g: Node3D, k: String, plume: Color) -> void:
 			pm.albedo_color = plume
 			pm.roughness = 1.0
 			_put(g, _box(Vector3(0.04, 0.12, 0.26)), pm, Vector3(0, 1.08 + y, 0))
+		"wizhat":
+			# a tall violet cone with a wide brim, a gold band and stars
+			var m := mat(0x4a2f7a, 0.9)
+			var gold := mat(0xd8b25a, 0.4, 0.5)
+			_put(g, _cyl(0.27, 0.27, 0.02, 20), m, Vector3(0, 0.95 + y, 0))
+			_put(g, _cyl(0.0, 0.15, 0.5, 16), m, Vector3(0, 1.21 + y, -0.02), Vector3(-0.12, 0, 0))
+			_put(g, _cyl(0.152, 0.152, 0.04, 16), gold, Vector3(0, 0.98 + y, 0))
+			for i in 4:
+				var a := i * 1.7
+				_put(g, _box(Vector3(0.035, 0.035, 0.01)), gold, Vector3(sin(a) * 0.1, 1.08 + y + i * 0.055, cos(a) * 0.1), Vector3(0, a, 0.78))
 
 
 ## The tool of their trade, held in the right hand (built under `hand`, the arm's own space).
@@ -180,6 +204,16 @@ static func tool_in(hand: Node3D, k: String) -> void:
 		"cudgel":
 			w.rotation.x = 0.6
 			_put(w, _cyl(0.045, 0.022, 0.42, 7), wood, Vector3(0, 0.18, 0))
+		"wizstaff":
+			w.rotation.x = 0.1
+			_put(w, _cyl(0.018, 0.024, 1.5, 6), wood, Vector3(0, 0.42, 0))
+			_put(w, _cyl(0.07, 0.07, 0.02, 12), mat(0xd8b25a, 0.4, 0.6), Vector3(0, 1.18, 0))
+			var orb := mat(0xb8b0ff, 0.3)
+			orb.emission_enabled = true
+			orb.emission = Look.html_hex(0x8f86ff)
+			orb.emission_energy_multiplier = 2.0
+			var o := _put(w, _ball(0.05), orb, Vector3(0, 1.22, 0))
+			o.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		# weapons found in the goblins' lair or bought at the store
 		"dagger":
 			w.rotation.x = 0.7

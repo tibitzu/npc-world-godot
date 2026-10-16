@@ -63,6 +63,15 @@ script = ExtResource("6_nav")
 [node name="Forest" type="Node3D" parent="."]
 script = ExtResource("13_forest")
 
+[node name="WizardWoods" type="Node3D" parent="."]
+script = ExtResource("13_forest")
+centre = Vector2(8, 118)
+radius = 20.0
+trees_wanted = 85
+keep_clear = Vector3(8, 120, 8.5)
+layout_seed = 4242
+for_felling = false
+
 [node name="LampPosts" type="Node3D" parent="."]
 script = ExtResource("14_lamps")
 

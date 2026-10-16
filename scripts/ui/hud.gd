@@ -289,6 +289,7 @@ func _process(_delta: float) -> void:
 		if (_cards[res] as Button).text != t:
 			(_cards[res] as Button).text = t
 		(_cards[res] as Button).modulate.a = 0.5 if r.dead else 1.0
+		(_cards[res] as Button).visible = r.known       # the wizard only once he's been met
 	var ctrl := _player.controlled
 	var left := _player.idle_left() if ctrl else 99.0
 	_idle.visible = ctrl != null and left < 10.0

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="NpcDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/npc_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "orrin"
+display_name = "Orrin"
+role = "Wizard"
+colour = Color(0.560784, 0.525490, 1, 1)
+start = Vector2(8.6, 115.2)
+speed = 0.85
+wander_range = 6.0
+home_radius = 9.0
+town_visits = 0.0
+lines = PackedStringArray("The stars were wrong last night. Slightly wrong.", "Where did I put that newt?", "Hm. The cauldron is singing again.", "Seven hundred years of study, and still the kettle boils over.", "Visitors. How... unusual.", "Mind the runes. They bite.")
+sleep_hour = 3.0
+wake_hour = 11.0
+bed_lines = PackedStringArray("The candle's low. To bed, old man.", "Enough stargazing. Sleep.")
+wake_lines = PackedStringArray("Morning already? The tomes await.", "Up, up. Things to brew.")
+greet_lines = PackedStringArray("Ah. {n}, isn't it?", "Greetings, {n}. Mind the runes.", "{n}. The stars said you'd come.")
+reply_lines = PackedStringArray("Fascinating.", "Hmm, yes, quite.", "The stars agree.", "I shall consult the tomes.")
+answer_lines = PackedStringArray("All things in time.", "Ask the moon.", "That is a question with many answers.")
+hat = "wizhat"
+tool = "wizstaff"
+trousers = 3424378
+shoes = "buckleshoes"
+extras = PackedStringArray("robe", "beard_white")
+hp_max = 75.0
+gold = 60
+hidden = true

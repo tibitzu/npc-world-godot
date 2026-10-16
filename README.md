@@ -177,6 +177,15 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - **The residents use it too**: one badly hurt in a fight drinks a healing potion if they have one, and residents who drop into the store now and then buy a minor healing potion, just in case.
 - Items, prices and the store are `scripts/items/items.gd`; the inventory and shop panels `scripts/ui/inventory_panel.gd` and `scripts/ui/shop_panel.gd`; each resident's purse, bag and what they have on are in `scripts/actors/resident.gd` (`bag`, `equip`, `use_item`).
 
+**Milestone 16, the wizard**
+- **Orrin's tower**: a tall round stone tower with a violet spire (gold stars, a crescent moon at the tip), alone in a stand of old pines about 110 m south of the square (x 8, z 120). Inside, one round room: his bed against the back wall, a desk heaped with tomes, bookshelves round the curve of the wall, a cauldron bubbling green over a little fire, a crystal ball on a pedestal, a ladder up into the dark, and a glowing rune circle in the middle of the floor.
+- **Orrin** (as in the HTML game): a wizard in a tall violet hat and a starry robe, with a long white beard and an oak staff. 75 health, 60 gold. He keeps odd hours (to bed at 3, up at 11), potters round his tower, and drinks and eats from his cauldron.
+- **Found, not known**: until someone finds him, nobody in town knows him. He has no card, his name tag just says "A WIZARD?", and he can't be played. Walk someone to him and press F to say hello (waking him if he's asleep). He answers ("Ah, Dax. The stars said someone would come."), the town chatter says he's been met, his card appears, and from then on he can be played like anyone else.
+- **Bolts of light**: his staff is ranged. Space throws a glowing bolt at a goblin up to 8 m away in the direction you're facing (as long as nothing's in the way), and he does the same when he fights on his own.
+- **The old woods** round the tower are only scenery: nobody fells those.
+- The tower is `scenes/buildings/tower.tscn` (`data/buildings/tower.tres`); Orrin is `data/npcs/orrin.tres` (`hidden = true` makes a resident unknown until met); the bolt is `scripts/actors/light_bolt.gd`.
+- Fixed on the way: residents living far from town no longer walk all the way in to drop into the store.
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -260,6 +269,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 16
+## Next: milestone 17
 
-The wizard, as in the HTML game: Orrin lives alone in a stone tower out in the woods. He can't be played until someone has found him and said hello; after that he's a resident like the rest, with a staff that throws bolts of light.
+Character sheets, as in the HTML game: each resident gets the six abilities (Strength, Agility, Constitution, Intelligence, Wisdom, Charisma), shown on a sheet with their gear and health. The abilities shape how hard they hit, how much health they have, how far they see trouble coming and what Tilda charges them, and her ability potions boost one for a while.
