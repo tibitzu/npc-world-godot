@@ -31,3 +31,4 @@ trousers = 4011048
 shoes = "workboots"
 extras = PackedStringArray("beard")
 hp_max = 120.0
+gold = 32

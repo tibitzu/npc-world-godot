@@ -30,3 +30,4 @@ trousers = 2829109
 shoes = "buckleshoes"
 extras = PackedStringArray("apron")
 hp_max = 80.0
+gold = 80

@@ -180,3 +180,25 @@ static func tool_in(hand: Node3D, k: String) -> void:
 		"cudgel":
 			w.rotation.x = 0.6
 			_put(w, _cyl(0.045, 0.022, 0.42, 7), wood, Vector3(0, 0.18, 0))
+		# weapons found in the goblins' lair or bought at the store
+		"dagger":
+			w.rotation.x = 0.7
+			_put(w, _cyl(0.018, 0.018, 0.1, 6), mat(0x3a2a20), Vector3.ZERO)
+			_put(w, _box(Vector3(0.08, 0.02, 0.02)), mat(0xb08a3a, 0.4, 0.6), Vector3(0, 0.06, 0))
+			_put(w, _box(Vector3(0.035, 0.2, 0.008)), steel, Vector3(0, 0.17, 0))
+		"shortsword":
+			w.rotation.x = 0.6
+			_put(w, _cyl(0.018, 0.018, 0.13, 6), mat(0x3a2a20), Vector3.ZERO)
+			_put(w, _box(Vector3(0.14, 0.025, 0.03)), mat(0xb08a3a, 0.4, 0.6), Vector3(0, 0.075, 0))
+			_put(w, _box(Vector3(0.045, 0.48, 0.01)), steel, Vector3(0, 0.33, 0))
+		"mace":
+			w.rotation.x = 0.6
+			_put(w, _cyl(0.018, 0.02, 0.45, 6), wood, Vector3(0, 0.15, 0))
+			_put(w, _ball(0.06), steel, Vector3(0, 0.4, 0))
+			for f in 4:
+				_put(w, _box(Vector3(0.14, 0.05, 0.015)), steel, Vector3(0, 0.4, 0), Vector3(0, f * PI / 4.0, 0))
+		"waraxe":
+			w.rotation.x = 0.55
+			_put(w, _cyl(0.018, 0.022, 0.7, 6), wood, Vector3(0, 0.22, 0))
+			_put(w, _box(Vector3(0.03, 0.2, 0.2)), steel, Vector3(0, 0.5, 0.08))
+			_put(w, _box(Vector3(0.03, 0.06, 0.08)), steel, Vector3(0, 0.5, -0.06))

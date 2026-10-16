@@ -10,6 +10,8 @@ extends RefCounted
 ##   at the general store's till       mind the shop (or stop)
 ##   by a street lamp                  light it, or put it out
 ##   by a standing tree                fell it (it takes a few seconds)
+##   by a chest in the goblins' lair   open it and take what's inside
+##   at the store's counter            trade with Tilda (while she's at the till)
 ##   at the alarm bell                 ring it (everyone indoors, the guards out)
 ##   at the well                       have a drink
 ##   in front of an oven               have a meal
@@ -74,6 +76,21 @@ static func find(r: Resident) -> Dictionary:
 				return {"label": "Put out the lamp" if lit else "Light the lamp", "run": func() -> void:
 					r.start_action("light", "pole", 1.0 if lit else 1.6, lp, func() -> void:
 						lamps.set_lit(i, not lit))}
+	# a chest in the goblins' lair
+	var lair := tree.get_first_node_in_group("goblin_lair") as GoblinLair
+	if lair and here.y < -1.0:
+		var ci := lair.chest_near(here)
+		if ci >= 0:
+			return {"label": "Open the great chest" if lair.chests[ci].big else "Open the chest", "run": func() -> void:
+				var what := lair.open_chest(ci, r)
+				if what != "":
+					r.say("Treasure!" if lair.chests[ci].big else "Ooh, what's this?")
+					Events.town_event.emit("%s found %s in a chest%s." % [r.def.display_name, what,
+						" in the chief's hall" if lair.chests[ci].big else ""])}
+	# the general store's counter, with Tilda at the till
+	if ShopJob.trading() and ShopJob.at_counter(r) and ShopJob.keeper.r != r:
+		return {"label": "Trade with Tilda", "run": func() -> void:
+			Events.shop_requested.emit(r)}
 	# the alarm bell
 	var bell := AlarmBell.find(tree)
 	if bell and _close(here, bell.position, 1.6):

@@ -31,3 +31,4 @@ trousers = 2829109
 shoes = "buckleshoes"
 extras = PackedStringArray()
 hp_max = 70.0
+gold = 45

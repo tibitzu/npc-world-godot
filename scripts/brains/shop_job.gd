@@ -45,6 +45,18 @@ static func player_minding() -> bool:
 	return true
 
 
+## Is Tilda at her till to trade with (and nobody playing her)?
+static func trading() -> bool:
+	return keeper != null and keeper._state == "till" and not keeper.r.controlled and not keeper.r.dead \
+		and keeper.arrived(till_spot(), 0.8)
+
+
+## Is someone standing at the counter, on the customer's side?
+static func at_counter(r: Resident) -> bool:
+	var c := customer_spot()
+	return Hex.distance(r.position, c) < 1.1 and absf(r.position.y - c.y) < 0.6
+
+
 static func _the_store() -> Building:
 	var tree := Engine.get_main_loop() as SceneTree
 	for b in tree.get_nodes_in_group("buildings"):
@@ -73,6 +85,7 @@ func label() -> String:
 func start() -> void:
 	_store = building("Store")
 	_state = "to_till"
+	Items.restock()                                # the shelves filled up for the day
 
 
 func stop() -> void:
@@ -134,4 +147,5 @@ func _welcome_customers() -> void:
 		if not c.controlled:
 			c.stop_to_talk(r, 4.0)
 			c.say_later(Resident._pick(c.def.reply_lines), 1.6)
+			c.shop_a_little()
 		return

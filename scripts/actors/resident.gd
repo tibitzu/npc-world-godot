@@ -40,6 +40,8 @@ signal arrived
 signal spoke(text: String)
 ## Their pack changed (the HUD's pack panel listens).
 signal packed
+## What they carry (coins and things) or wear changed (the HUD's inventory listens).
+signal bagged
 
 const PLAYED_SPEED := 2.3          # m/s when a player walks them
 const RUN_FACTOR := 1.5            # Left Shift
@@ -129,6 +131,13 @@ const TO_BELL := ["Raiders! To the bell!", "Goblins on the road! Sound the alarm
 const SHELTER := ["The bell! Inside, quick!", "Goblins? I'm off home.", "Not again. Lock the door!", "Indoors, indoors!"]
 var _sheltering := false           # gone indoors while the alarm is up
 var _to_bell := false              # the guard on watch, running to ring the bell
+## Their coins and things (see Items): gold, silver and a list of item keys; and what they have
+## on: a weapon in hand ("" for the tool of their trade), a ring, a cloak.
+var bag := {"gold": 0, "silver": 0, "items": []}
+var equip := {"hand": "", "ring": "", "back": ""}
+var _might_until := -1.0           # the elixir of strength lasts until this game time
+var _potion_at := -99.0
+const DRINK_LINES := ["Bottoms up!", "Ugh, tastes of pennies. Works, though.", "That's better."]
 ## Game time (Game.world_time) before which they won't pipe up on their own again.
 var next_speak := 0.0
 var _wp := 0                       # which point of it they're heading for
@@ -151,6 +160,7 @@ func setup(d: NpcDef) -> void:
 	name = d.id
 	position = Vector3(d.start.x, 0.0, d.start.y)
 	heading = randf() * TAU
+	bag.gold = d.gold
 	_timer = 0.5 + randf() * 2.0
 
 
@@ -320,7 +330,13 @@ func _end_action(finished: bool) -> void:
 # their everyday tool shows in their hand unless they're holding something for work, carrying
 # parcels, or lying down
 func _wants_tool() -> bool:
-	return def.tool != "" and _held == "" and pack.get("parcels", 0) == 0 and _lie == 0.0
+	return _hand_tool() != "" and _held == "" and pack.get("parcels", 0) == 0 and _lie == 0.0
+
+
+# what's in their right hand when they aren't working with something: a weapon they've taken up,
+# or the tool of their trade
+func _hand_tool() -> String:
+	return equip.hand if equip.hand != "" else def.tool
 
 
 # logs on the back and parcels in the arms (from the pack), and the tool in the right hand
@@ -346,7 +362,7 @@ func _refresh_props() -> void:
 		var t := Node3D.new()
 		t.name = "Carry"
 		_arm_r.add_child(t)
-		Gear.tool_in(t, def.tool)
+		Gear.tool_in(t, _hand_tool())
 	elif _held != "":
 		var h := Node3D.new()
 		h.name = "Carry"
@@ -705,15 +721,158 @@ func _is_guard() -> bool:
 	return def.job == "patrol"
 
 
-## Their weapon: the tool of their trade (or fists).
+## Their weapon: one they've found or bought and taken in hand, or else the tool of their trade
+## (or fists). The elixir of strength adds to every blow.
 func weapon() -> Dictionary:
-	return Gear.WEAPONS.get(def.tool, Gear.WEAPONS[""])
+	var w: Dictionary = Items.info(equip.hand) if equip.hand != "" else Gear.WEAPONS.get(def.tool, Gear.WEAPONS[""])
+	if Game.world_time < _might_until:
+		w = w.duplicate()
+		w.dmg = w.dmg + Vector2i(3, 3)
+	return w
+
+
+## What takes blows off: the ring of protection.
+func armour() -> int:
+	return int(Items.info(equip.ring).get("armour", 0)) if equip.ring != "" else 0
+
+
+func might_left() -> float:
+	return maxf(0.0, _might_until - Game.world_time)
+
+
+# ---------- coins and things ----------
+
+func item_count(k: String) -> int:
+	return (bag.items as Array).count(k)
+
+
+## How many of k they could part with (not counting the one they're wearing or wielding).
+func spare(k: String) -> int:
+	var worn := 0
+	for slot in equip:
+		if equip[slot] == k:
+			worn += 1
+	return item_count(k) - worn
+
+
+func give(k: String, n := 1) -> void:
+	for i in n:
+		(bag.items as Array).append(k)
+	bagged.emit()
+
+
+func take_item(k: String) -> bool:
+	var i := (bag.items as Array).rfind(k)
+	if i < 0:
+		return false
+	(bag.items as Array).remove_at(i)
+	for slot in equip:
+		if equip[slot] == k and item_count(k) == 0:
+			equip[slot] = ""
+			if slot == "hand":
+				_refresh_props()
+	bagged.emit()
+	return true
+
+
+## All their money, in silver.
+func purse() -> int:
+	return bag.gold * 10 + bag.silver
+
+
+func add_coin(silver: int) -> void:
+	bag.gold += silver / 10
+	bag.silver += silver % 10
+	bagged.emit()
+
+
+## Pay out silver: silver first, then gold coins broken as needed (change back in silver).
+func pay(silver: int) -> bool:
+	if purse() < silver:
+		return false
+	if bag.silver >= silver:
+		bag.silver -= silver
+	else:
+		var g := ceili((silver - bag.silver) / 10.0)
+		bag.gold -= g
+		bag.silver += g * 10 - silver
+	bagged.emit()
+	return true
+
+
+## Use something they carry (see Items): wield or put away a weapon, put on or take off a ring or
+## a cloak, drink a potion. Returns what happened, to show.
+func use_item(k: String) -> String:
+	var it := Items.info(k)
+	if it.is_empty() or item_count(k) == 0 or dead:
+		return ""
+	var n := def.display_name
+	var low := String(it.name).to_lower()
+	match it.type:
+		"weapon":
+			if equip.hand == k:
+				equip.hand = ""
+				_refresh_props()
+				bagged.emit()
+				return "%s puts the %s away and takes up the %s again." % [n, low, String(weapon().name).to_lower()] if def.tool != "" \
+					else "%s puts the %s away." % [n, low]
+			equip.hand = k
+			_refresh_props()
+			bagged.emit()
+			return "%s wields the %s." % [n, low]
+		"potion":
+			if it.has("heal"):
+				if hp >= def.hp_max - 0.5:
+					return "%s is already at full health." % n
+				var gain := minf(float(it.heal), def.hp_max - hp)
+				hp += gain
+				take_item(k)
+				FloatText.pop(get_parent(), global_position + Vector3.UP * 2.1, "+%d" % int(gain), Color(0.5, 1.0, 0.55))
+				return "%s drinks the %s (+%d health)." % [n, low, int(gain)]
+			_might_until = Game.world_time + Items.MIGHT_FOR
+			take_item(k)
+			return "%s drinks the elixir: +3 damage for four hours." % n
+	if it.has("slot"):
+		var slot: String = it.slot
+		if equip[slot] == k:
+			equip[slot] = ""
+			bagged.emit()
+			return "%s takes off the %s." % [n, low]
+		equip[slot] = k
+		bagged.emit()
+		return "%s puts on the %s." % [n, low]
+	if it.type == "gem":
+		return "The %s is worth %d gold. Tilda will buy it." % [low, it.value]
+	return "The %s has no use yet." % low
+
+
+# a healing potion in a fight, when badly hurt (for a resident nobody is playing); true if drunk
+func _drink_heal() -> bool:
+	if Game.world_time - _potion_at < 3.0:
+		return false
+	for k in ["healminor", "healpot", "healgreater", "healsuperior"]:
+		if item_count(k) > 0:
+			_potion_at = Game.world_time
+			use_item(k)
+			say(pick_fresh(DRINK_LINES))
+			return true
+	return false
+
+
+## A resident nobody is playing, at Tilda's counter: now and then they buy a healing potion, if
+## they haven't one and can afford it.
+func shop_a_little() -> void:
+	if controlled or item_count("healminor") + item_count("healpot") > 0 or randf() > 0.4:
+		return
+	if Items.buy(self, "healminor"):
+		say_later("A minor healing potion, please. Just in case.", 1.6)
 
 
 ## Struck (by a goblin): lose health; at none, they die.
 func hurt(dmg: int, by: Node3D) -> void:
 	if dead:
 		return
+	dmg = maxi(1, dmg - armour())
 	hp = maxf(0.0, hp - dmg)
 	_hurt_at = Game.world_time
 	_attacker = by
@@ -816,6 +975,8 @@ func _combat_step(_delta: float) -> bool:
 			_goal = null
 			_timer = 1.0
 		return false
+	if hp < def.hp_max * 0.35 and _drink_heal():
+		return true
 	if not _is_guard() and hp < def.hp_max * 0.35:
 		# badly hurt: run for home
 		var b := _nearest_free_bed()

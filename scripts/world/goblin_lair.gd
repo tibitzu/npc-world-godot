@@ -45,6 +45,10 @@ var _lights: Array[Light3D] = []    # lit only while someone's down here
 var _roof: Node3D
 var _ground_mat: ShaderMaterial
 var _monsters: Array[Monster] = []
+## The chests: {pos, big, items, gold, silver, opened, hinge}. What's in them follows from a seed
+## of its own, so it's the same every game; the one in the chief's hall is the richest.
+var chests: Array[Dictionary] = []
+var _loot_rng := RandomNumberGenerator.new()
 
 var _stone: StandardMaterial3D
 var _dark: StandardMaterial3D
@@ -57,6 +61,7 @@ var _coal: StandardMaterial3D
 func _ready() -> void:
 	add_to_group("goblin_lair")
 	_rng.seed = SEED
+	_loot_rng.seed = SEED + 7
 	var size := N * C
 	ex = entry_x
 	var exi := (N / 2) | 1
@@ -413,10 +418,10 @@ func _furnish() -> void:
 			add_child(sign)
 			continue
 		var kind := _r()
-		if kind < 0.4:
+		if kind < 0.6:
 			for k in 1 + int(_r() * 2):
 				_chest(spot.call(), int(_r() * 4) * PI / 2.0, false)
-		elif kind < 0.7:
+		if kind > 0.45:
 			for k in 2 + int(_r() * 3):
 				_barrel(spot.call())
 		if rm.size.x >= 5 and rm.size.y >= 5 and _r() < 0.6:
@@ -455,11 +460,66 @@ func _chest(p: Vector3, turn: float, big: bool) -> void:
 	add_child(g)
 	var gold := Gear.mat(0xd8b25a, 0.35, 0.6)
 	Gear._put(g, Gear._box(Vector3(0.7, 0.42, 0.45) * s), _wood, Vector3(0, 0.21 * s, 0))
-	Gear._put(g, Gear._cyl(0.225 * s, 0.225 * s, 0.7 * s, 10), _wood, Vector3(0, 0.42 * s, 0), Vector3(0, 0, PI / 2), Vector3(1, 1, 1))
+	Gear._put(g, Gear._box(Vector3(0.62, 0.01, 0.37) * s), Gear.mat(0x1c1612), Vector3(0, 0.421 * s, 0))
 	for o in [-0.25, 0.25]:
 		Gear._put(g, Gear._box(Vector3(0.05, 0.44, 0.47) * s), gold if big else _iron, Vector3(o * s, 0.22 * s, 0))
 	Gear._put(g, Gear._box(Vector3(0.08, 0.1, 0.03)), gold, Vector3(0, 0.38 * s, 0.24 * s))
+	# the lid hangs from a hinge along the back edge, so it can swing open
+	var hinge := Node3D.new()
+	hinge.position = Vector3(0, 0.42 * s, -0.225 * s)
+	g.add_child(hinge)
+	Gear._put(hinge, Gear._box(Vector3(0.72, 0.13, 0.47) * s), _wood, Vector3(0, 0.065 * s, 0.225 * s))
+	for o in [-0.25, 0.25]:
+		Gear._put(hinge, Gear._box(Vector3(0.05, 0.14, 0.49) * s), gold if big else _iron, Vector3(o * s, 0.065 * s, 0.225 * s))
 	_solid(p, 0.35 * s, 0.6 * s)
+	var c := {"pos": p, "big": big, "opened": false, "hinge": hinge}
+	var R := _loot_rng
+	if big:
+		c.items = [Items.of_type(R, "gem"), Items.of_type(R, "gem"), Items.of_type(R, "magic"), Items.of_type(R, "weapon"),
+			Items.of_type(R, "potion"), Items.roll(R)]
+		if R.randf() < 0.6:
+			c.items.append(Items.roll(R))
+		c.gold = 60 + R.randi() % 91
+		c.silver = 50 + R.randi() % 71
+	else:
+		c.items = []
+		for k in 1 + R.randi() % 3:
+			c.items.append(Items.roll(R))
+		c.gold = R.randi() % 26
+		c.silver = 5 + R.randi() % 36
+	chests.append(c)
+
+
+## The unopened chest within reach of a point (index), or -1.
+func chest_near(p: Vector3) -> int:
+	var best := -1
+	var bd := 1.35
+	for i in chests.size():
+		var c := chests[i]
+		var d := Hex.distance(p, c.pos)
+		if not c.opened and d < bd and absf(p.y - (c.pos as Vector3).y) < 1.0:
+			bd = d
+			best = i
+	return best
+
+
+## Open a chest and take everything in it; returns what was in it, for the town chatter.
+func open_chest(i: int, r: Resident) -> String:
+	var c := chests[i]
+	if c.opened:
+		return ""
+	c.opened = true
+	(c.hinge as Node3D).rotation.x = -1.95
+	var got: Array[String] = []
+	for k in c.items:
+		r.give(k)
+		got.append(Items.title(k).to_lower())
+	r.add_coin(c.gold * 10 + c.silver)
+	if c.gold:
+		got.append("%d gold" % c.gold)
+	if c.silver:
+		got.append("%d silver" % c.silver)
+	return ", ".join(got)
 
 
 func _barrel(p: Vector3) -> void:

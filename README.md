@@ -159,6 +159,24 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - While you're playing someone underground, the grass over the lair is left out so the camera can see in, the torches light up, and clicks walk you about the lair's floor. From above, only the stairwell shows through the gatehouse arch.
 - The bell is `scripts/world/bell.gd`, the lair `scripts/world/goblin_lair.gd` (its layout, its navigation mesh, and the goblins it starts with); the lair goblins and the chief are `Monster`s with `in_lair` / `chief` set.
 
+**Milestone 15, treasure and trade**
+- **Coins**: everyone has a purse (gold, and silver at 10 to the gold), starting with what they had in the HTML game: Mira 30 gold, Bolt 24, Fen 45, Brann 32, the guards 40 each, Tilda 80.
+- **Chests**: the lair's chests (five of them, the richest in the chief's hall) hold gems, weapons, potions, odds and ends, a bit of magic, and coin. F beside one opens it and takes the lot; the town chatter says what was found.
+- **Inventory (I)**: coins, what's in hand, what's worn, health, and everything carried. Click a thing to use it:
+
+  | Kind | Using it |
+  |---|---|
+  | Weapon (steel dagger, short sword, flanged mace, war axe) | Wield it instead of the tool of their trade (it shows in their hand); click again to put it away |
+  | Healing potion (minor, normal, greater, superior) | Restores 20, 40, 80 or all health |
+  | Elixir of strength | +3 damage on every blow for four hours |
+  | Ring of protection | Takes 2 off every blow that lands (a blow always does at least 1) |
+  | Cloak of shadows | Goblins see you only from half as far |
+  | Gems, odds and ends, the amulet, wand and scroll | For selling (no use yet) |
+
+- **The general store**: F at Tilda's counter while she's at the till opens her shop: buy what's on her shelves at its value (healing potions, the elixir, weapons, rope, torches...), sell what you carry at half (what you're wearing or wielding stays on). She restocks every morning, and her till isn't bottomless.
+- **The residents use it too**: one badly hurt in a fight drinks a healing potion if they have one, and residents who drop into the store now and then buy a minor healing potion, just in case.
+- Items, prices and the store are `scripts/items/items.gd`; the inventory and shop panels `scripts/ui/inventory_panel.gd` and `scripts/ui/shop_panel.gd`; each resident's purse, bag and what they have on are in `scripts/actors/resident.gd` (`bag`, `equip`, `use_item`).
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -192,6 +210,7 @@ A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is eas
 | Lie down / get up, or the work at hand (including ringing the alarm bell) | F (the hint on screen says what it'll do) |
 | Say something | Enter, type, Enter (Esc cancels) |
 | Strike (at a goblin in front) | Space |
+| Inventory: coins, gear, things carried (click to use) | I |
 | First / third person | Scroll, T, or the button |
 | Let go | Esc, the Let go button, or click their card |
 
@@ -241,6 +260,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 15
+## Next: milestone 16
 
-Treasure and trade, as in the HTML game: the chests in the lair hold gems, weapons, potions and coin; each resident carries what they find, can use or wear it (a better weapon, a healing potion), and can sell it to Tilda at the general store.
+The wizard, as in the HTML game: Orrin lives alone in a stone tower out in the woods. He can't be played until someone has found him and said hello; after that he's a resident like the rest, with a staff that throws bolts of light.

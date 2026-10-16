@@ -34,6 +34,8 @@ var _pack: PanelContainer
 var _pack_title: Label
 var _pack_slots := {}          # "logs"/"parcels" -> Array of ColorRect
 var _pack_of: Resident = null
+var _inv: InventoryPanel
+var _shop: ShopPanel
 
 const CHATTER_LINES := 6
 const CHATTER_FADE := 45.0     # real seconds a line stays in the chatter log
@@ -56,6 +58,13 @@ func _ready() -> void:
 	_build_say_box()
 	_build_hint()
 	_build_pack()
+	_inv = InventoryPanel.new()
+	add_child(_inv)
+	_shop = ShopPanel.new()
+	add_child(_shop)
+	Events.shop_requested.connect(func(r: Node) -> void:
+		_inv.close()
+		_shop.open(r as Resident))
 	Game.speed_changed.connect(func(_s: int) -> void: _refresh_speed())
 	_idle.offset_top = 62.0
 	_idle.offset_bottom = 86.0
@@ -258,8 +267,12 @@ func _refresh() -> void:
 	_view_btn.text = "1st person" if _rig.third_person else "3rd person"
 	if ctrl == null and _say_box and _say_box.visible:
 		_close_say_box()
+	if _inv and _inv.visible and _inv.resident != ctrl:
+		_inv.close()
+	if _shop and _shop.visible and _shop.resident != ctrl:
+		_shop.close()
 	if ctrl:
-		_help.text = "You are %s. F does what's at hand · Space strikes · Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
+		_help.text = "You are %s. F does what's at hand · I inventory · Space strikes · Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
 	else:
 		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · [ ] game speed · V tiles · P routes"
 
@@ -507,6 +520,22 @@ func _refresh_pack() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("chat") and _player.controlled and not _say_box.visible:
 		_open_say_box()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("inventory") and _player.controlled and not Game.typing:
+		if _inv.visible:
+			_inv.close()
+		else:
+			_shop.close()
+			_inv.open(_player.controlled)
+		get_viewport().set_input_as_handled()
+
+
+# Esc closes the inventory or the shop first (before it lets go of the resident)
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE \
+			and not Game.typing and (_inv.visible or _shop.visible):
+		_inv.close()
+		_shop.close()
 		get_viewport().set_input_as_handled()
 
 

@@ -57,3 +57,5 @@ extends Resource
 
 ## Health when unhurt (as in the HTML game).
 @export var hp_max := 100.0
+## Gold coins they start with (as in the HTML game).
+@export var gold := 0

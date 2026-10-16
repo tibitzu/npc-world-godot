@@ -356,7 +356,7 @@ func _look_for_someone() -> void:
 		var r := o as Resident
 		if r.dead or not _in_open(r) or absf(r.position.y - position.y) > 1.0:
 			continue
-		var d := Hex.distance(position, r.position)
+		var d := Hex.distance(position, r.position) * _shadowed(r)
 		if d < bd:
 			bd = d
 			best = r
@@ -464,11 +464,16 @@ func _intruder(within: float) -> Resident:
 		var r := o as Resident
 		if r.dead or r.position.y > LAIR_TOP or absf(r.position.y - position.y) > 1.0:
 			continue
-		var d := Hex.distance(position, r.position)
+		var d := Hex.distance(position, r.position) * _shadowed(r)
 		if d < bd and _can_see(r.position):
 			bd = d
 			best = r
 	return best
+
+
+# someone in the cloak of shadows is seen only from half as far
+static func _shadowed(r: Resident) -> float:
+	return 2.0 if r.equip.back == "cloak" else 1.0
 
 
 func _can_see(p: Vector3) -> bool:
