@@ -23,6 +23,8 @@ var tiles_shown := false        # V: hex tiles on or off (off by default, as in 
 var world_time := 0.0
 ## True while the player is typing something to say (keys then type, they don't move anyone).
 var typing := false
+## True while the character sheet is open (it takes the arrow keys; nobody moves meanwhile).
+var sheet_open := false
 var speed := 1
 
 

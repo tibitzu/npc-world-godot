@@ -10,6 +10,10 @@ extends CharacterBody3D
 ## rooms, and go for anyone who comes down there; they don't run, and don't follow anyone up the
 ## stair. Their chief, bigger, crowned and harder-hitting, paces the great hall; killing him ends
 ## the raids for good.
+##
+## Like the residents they have the six abilities (Abilities.GOBLIN, GOBLIN_CHIEF), which work the
+## same way: Strength on their blows, Agility on how quick they are and their chance to dodge,
+## Constitution on their health and Wisdom on how far off they spot someone.
 
 signal died
 
@@ -42,6 +46,7 @@ var chief := false
 ## Lair goblins: spots to walk between (they pick another when they get to one).
 var beat: Array[Vector3] = []
 var hp_max := HP_MAX
+var abil: Dictionary = Abilities.GOBLIN
 
 var hp := -1.0
 var dead := false
@@ -75,6 +80,8 @@ func _ready() -> void:
 	add_to_group("monsters")
 	if chief:
 		hp_max = CHIEF_HP
+		abil = Abilities.GOBLIN_CHIEF
+	hp_max += Abilities.HP_PER_CON * Abilities.mod(abil.con)
 	if hp < 0.0:
 		hp = hp_max
 	if in_lair:
@@ -217,6 +224,13 @@ func is_hostile() -> bool:
 func hurt(dmg: int, by: Resident) -> void:
 	if dead:
 		return
+	if randf() < Abilities.dodge(abil.agi):
+		FloatText.pop(get_parent(), global_position + Vector3.UP * 1.5, "dodged", Color(0.75, 0.85, 1.0))
+		if by and is_instance_valid(by) and not by.dead and target == null:
+			target = by
+			if in_lair and mode == "lair":
+				mode = "chase"
+		return
 	hp = maxf(0.0, hp - dmg)
 	FloatText.pop(get_parent(), global_position + Vector3.UP * 1.5, str(dmg), Color(1, 0.85, 0.4))
 	_bar.visible = true
@@ -230,7 +244,7 @@ func hurt(dmg: int, by: Resident) -> void:
 		target = by                                  # turn on whoever did it
 		if in_lair and mode == "lair":
 			mode = "chase"
-	if not in_lair and hp < HP_MAX * 0.3 and mode != "retreat":
+	if not in_lair and hp < hp_max * 0.3 and mode != "retreat":
 		mode = "retreat"
 		target = null
 		say("flee")
@@ -346,12 +360,12 @@ func _physics_process(delta: float) -> void:
 # whoever's nearest and out in the open (indoors they're safe), and not dead
 func _look_for_someone() -> void:
 	if target and (target.dead or not _in_open(target) or absf(target.position.y - position.y) > 1.0 \
-			or Hex.distance(position, target.position) > SIGHT * 1.5):
+			or Hex.distance(position, target.position) > sight() * 1.5):
 		target = null
 	if target:
 		return
 	var best: Resident = null
-	var bd := SIGHT
+	var bd := sight()
 	for o in get_tree().get_nodes_in_group("residents"):
 		var r := o as Resident
 		if r.dead or not _in_open(r) or absf(r.position.y - position.y) > 1.0:
@@ -373,12 +387,24 @@ static func _in_open(r: Resident) -> bool:
 
 
 func _swing() -> void:
-	_cool = COOLDOWN
+	_cool = COOLDOWN * Abilities.quickness(abil.agi)
 	_strike = 0.001
 	var to := Hex.offset(position, target.position)
 	rotation.y = atan2(to.x, to.z)
-	var dmg := CHIEF_DMG if chief else DMG
+	var dmg := damage()
 	target.hurt(randi_range(dmg.x, dmg.y), self)
+
+
+## Damage a blow does: their club's (the chief's cleaver's), with their Strength modifier.
+func damage() -> Vector2i:
+	var base := CHIEF_DMG if chief else DMG
+	var m := Abilities.mod(abil.str)
+	return Vector2i(maxi(1, base.x + m), maxi(1, base.y + m))
+
+
+## How far off they spot someone: SIGHT, a metre further (or nearer) per point of Wisdom.
+func sight() -> float:
+	return SIGHT + Abilities.mod(abil.wis)
 
 
 func _move(delta: float, speed: float) -> void:
@@ -425,7 +451,7 @@ func _animate(delta: float) -> void:
 # walking the tunnels between spots on their beat (the chief: back and forth before his altar),
 # watching for anyone down here
 func _lair_watch(delta: float) -> void:
-	var seen := _intruder(SIGHT * (0.75 if chief else 0.65))
+	var seen := _intruder(sight() * (0.75 if chief else 0.65))
 	if seen:
 		target = seen
 		mode = "chase"
@@ -439,8 +465,8 @@ func _lair_watch(delta: float) -> void:
 
 # after an intruder: up to them and swinging, while they stay down here and not too far off
 func _lair_chase() -> void:
-	if target == null or target.dead or target.position.y > LAIR_TOP or Hex.distance(position, target.position) > SIGHT * 1.6:
-		target = _intruder(SIGHT * 0.65)
+	if target == null or target.dead or target.position.y > LAIR_TOP or Hex.distance(position, target.position) > sight() * 1.6:
+		target = _intruder(sight() * 0.65)
 		if target == null:
 			mode = "lair"
 			_goal = null
@@ -451,7 +477,7 @@ func _lair_chase() -> void:
 		_goal = null
 		if _cool <= 0.0:
 			_swing()
-			_cool = COOLDOWN * (1.15 if chief else 1.0)
+			_cool = COOLDOWN * Abilities.quickness(abil.agi) * (1.15 if chief else 1.0)
 	elif _goal == null or (agent.target_position - target.position).length() > 0.8:
 		_set_goal(target.position)
 

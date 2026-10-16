@@ -1,8 +1,8 @@
 class_name ShopPanel
 extends PanelContainer
 ## Trading with Tilda at the general store's counter (F there while she's at the till): what she
-## has on her shelves, at its value, and what she'll give for the things you carry, at half. It
-## closes when you walk away from the counter or she leaves the till.
+## has on her shelves, at its value, and what she'll give for the things you carry, at half
+## (Charisma moves both, see Items.price_edge). It closes when you walk away from the counter or she leaves the till.
 
 var resident: Resident = null
 
@@ -90,7 +90,7 @@ func _process(delta: float) -> void:
 
 func _rebuild() -> void:
 	var r := resident
-	var key := "%s|%d|%s|%d|%s" % [r.bag.items, r.purse(), Items.stock(), Items.till(), r.equip]
+	var key := "%s|%d|%s|%d|%s|%d" % [r.bag.items, r.purse(), Items.stock(), Items.till(), r.equip, r.ability("cha")]
 	if key == _shown:
 		return
 	_shown = key
@@ -107,11 +107,15 @@ func _rebuild() -> void:
 	top.add_child(InventoryPanel._label("Esc to close", 11, Color(0.75, 0.73, 0.68)))
 	_head.add_child(InventoryPanel._label("%s has %s · Tilda's till: %s" % [r.def.display_name, Items.money(r.purse()), Items.money(Items.till())],
 		13, Color(1.0, 0.85, 0.45)))
+	var edge := Items.price_edge(r)
+	_head.add_child(InventoryPanel._label("%s's Charisma (%d): prices %d%% %s." % [r.def.display_name, r.ability("cha"),
+		roundi(absf(edge) * 100.0), "better" if edge > 0.0 else "worse"] if edge != 0.0
+		else "Tilda sells at full value and buys at half.", 12, Color(0.75, 0.73, 0.68)))
 	var stock := Items.stock()
 	for k in Items.ALL:
 		if stock.get(k, 0) <= 0:
 			continue
-		var p := Items.buy_price(k)
+		var p := Items.buy_price(k, r)
 		var b := _row("%s ×%d · %s" % [Items.title(k), stock[k], Items.money(p)], k, Items.describe(k), r.purse() >= p)
 		b.pressed.connect(func() -> void:
 			if Items.buy(r, k):
@@ -124,7 +128,7 @@ func _rebuild() -> void:
 		if r.spare(k) <= 0:
 			continue
 		any = true
-		var p := Items.sell_price(k)
+		var p := Items.sell_price(k, r)
 		var b := _row("%s%s · %s" % [Items.title(k), " ×%d" % r.spare(k) if r.spare(k) > 1 else "", Items.money(p)], k,
 			Items.describe(k), Items.till() >= p)
 		b.pressed.connect(func() -> void:

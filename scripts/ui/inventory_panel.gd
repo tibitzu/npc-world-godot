@@ -88,7 +88,8 @@ func _rebuild() -> void:
 	if r == null or not is_instance_valid(r):
 		return
 	var w := r.weapon()
-	var key := "%s|%s|%s|%d|%d|%d" % [r.bag.items, r.equip, w.dmg, r.purse(), int(r.hp), ceili(r.might_left())]
+	var key := "%s|%s|%s|%d|%d|%d|%s|%d" % [r.bag.items, r.equip, w.dmg, r.purse(), int(r.hp), ceili(r.might_left()), r.boosts.keys(),
+		Abilities.boost_minutes(r)]
 	if key == _shown:
 		return
 	_shown = key
@@ -112,7 +113,14 @@ func _rebuild() -> void:
 		if r.equip[slot] != "":
 			worn.append(Items.title(r.equip[slot]))
 	_body.add_child(_label("Wearing: " + (", ".join(worn) if not worn.is_empty() else "nothing special"), 12, Color(0.85, 0.83, 0.78)))
-	_body.add_child(_label("Health %d / %d" % [int(r.hp), int(r.def.hp_max)], 12, Color(0.85, 0.83, 0.78)))
+	_body.add_child(_label("Health %d / %d" % [int(r.hp), int(r.hp_max())], 12, Color(0.85, 0.83, 0.78)))
+	var ups: Array[String] = []
+	for ab in Abilities.KEYS:
+		if r.boost_of(ab) > 0:
+			ups.append("+%d %s (%s left)" % [r.boost_of(ab), Abilities.SHORT[ab], Abilities.duration(r.boost_left(ab))])
+	if not ups.is_empty():
+		_body.add_child(_label("Potions: " + ", ".join(ups), 12, Color(0.75, 0.9, 1.0)))
+	_body.add_child(_label("C for %s's character sheet" % r.def.display_name, 11, Color(0.75, 0.73, 0.68)))
 	# the bag, one line per kind of thing
 	var counts := {}
 	for k in r.bag.items:

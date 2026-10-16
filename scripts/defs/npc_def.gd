@@ -55,8 +55,25 @@ extends Resource
 @export var extras: PackedStringArray = []
 @export var plume := Color(0.79, 0.19, 0.17)
 
-## Health when unhurt (as in the HTML game).
+## Health when unhurt (as in the HTML game), before Constitution adds to it.
 @export var hp_max := 100.0
+
+@export_group("Abilities")
+## Their trade, as the character sheet names it (the scores below come from it in the HTML game).
+@export var profession := ""
+## The six abilities, 3–18 (10 is an ordinary person); see Abilities for what each does.
+@export_range(3, 18) var strength := 10
+@export_range(3, 18) var agility := 10
+@export_range(3, 18) var constitution := 10
+@export_range(3, 18) var intelligence := 10
+@export_range(3, 18) var wisdom := 10
+@export_range(3, 18) var charisma := 10
+@export_group("")
+
+
+## Their own scores, by Abilities key ("str", "agi", ...).
+func abilities() -> Dictionary:
+	return {"str": strength, "agi": agility, "con": constitution, "int": intelligence, "wis": wisdom, "cha": charisma}
 ## Gold coins they start with (as in the HTML game).
 @export var gold := 0
 ## Unknown to the town until someone finds them and talks to them (the wizard): until then they

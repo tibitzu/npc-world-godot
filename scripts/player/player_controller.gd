@@ -123,7 +123,7 @@ func action_hint() -> String:
 func _process(delta: float) -> void:
 	if controlled == null:
 		return
-	if Game.typing:
+	if Game.typing or Game.sheet_open:
 		controlled.drive = Vector2.ZERO
 		controlled.running = false
 		return

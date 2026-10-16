@@ -19,12 +19,12 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if resident == null:
 		return
-	var now := [roundi(resident.hp / resident.def.hp_max * 100.0)]
+	var now := [roundi(resident.hp / resident.hp_max() * 100.0)]
 	for k in KEYS.slice(1):
 		now.append(roundi(resident.needs[k]))
 	if now != _shown:
 		_shown = now
-		tooltip_text = "Health %d/%d  " % [roundi(resident.hp), roundi(resident.def.hp_max)] + "  ".join(range(1, 5).map(func(i: int) -> String: return "%s %d" % [NAMES[i], now[i]]))
+		tooltip_text = "Health %d/%d  " % [roundi(resident.hp), roundi(resident.hp_max())] + "  ".join(range(1, 5).map(func(i: int) -> String: return "%s %d" % [NAMES[i], now[i]]))
 		queue_redraw()
 
 

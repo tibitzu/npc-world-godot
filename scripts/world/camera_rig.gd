@@ -214,7 +214,7 @@ func ground_point(screen: Vector2):
 func _process(delta: float) -> void:
 	delta = Game.real_delta(delta)        # the camera moves in real time at any game speed
 	var ctrl := player.controlled
-	if not ctrl:
+	if not ctrl and not Game.sheet_open:
 		var f := Input.get_action_strength("cam_forward") - Input.get_action_strength("cam_back")
 		var sd := Input.get_action_strength("cam_right") - Input.get_action_strength("cam_left")
 		var turn := Input.get_action_strength("cam_turn_right") - Input.get_action_strength("cam_turn_left")

@@ -24,11 +24,16 @@ extends CharacterBody3D
 ## (their own, or the tavern's), dropping their work if it gets very low. Happiness slips
 ## slowly and comes back with company, food and drink. Worn out, they'll nap.
 ##
-## Health and fighting (as in the HTML game): each has health (def.hp_max) and fights with the
+## Health and fighting (as in the HTML game): each has health (hp_max()) and fights with the
 ## tool of their trade (Gear.WEAPONS). Raiding goblins go for anyone out of doors. The guards turn
 ## out for any raider within 30 m, even from bed; anyone else hits back when attacked, and runs
 ## for home when badly hurt. Health comes back slowly out of danger and quickly in bed. At none
 ## they die: they lie where they fell and can't be played until a new game.
+##
+## Abilities (as in the HTML game, see Abilities): Strength, Agility, Constitution, Intelligence,
+## Wisdom and Charisma, from their NpcDef, plus whatever an ability potion is adding for now
+## (boosts). They change how hard and how often they hit, their chance to dodge, their health,
+## how far off they spot raiders, how fast they mend, and Tilda's prices.
 ##
 ## Work: a resident with a job (def.job, see scripts/brains) does it in their working hours; the
 ## job walks them about, sets their pose (chopping, carrying, reaching up with a pole) and what they
@@ -141,6 +146,8 @@ const HELLO := ["Visitors? Here? Well, well. Come in, {n}, and mind the runes.",
 	"Ah, {n}. The stars said someone would come. You may call me Orrin.", "Hm? Oh! A guest. Orrin, at your service, {n}."]
 var equip := {"hand": "", "ring": "", "back": ""}
 var _might_until := -1.0           # the elixir of strength lasts until this game time
+## Ability potions working on them: ability key -> [points added, game time it wears off].
+var boosts := {}
 var _potion_at := -99.0
 const DRINK_LINES := ["Bottoms up!", "Ugh, tastes of pennies. Works, though.", "That's better."]
 ## Game time (Game.world_time) before which they won't pipe up on their own again.
@@ -181,7 +188,7 @@ func _ready() -> void:
 	tag.modulate = Look.html_colour(def.colour).lightened(0.35)
 	_animate(0.0)
 	job = Job.make(self)
-	hp = def.hp_max
+	hp = hp_max()
 	for k in needs:
 		needs[k] = randf_range(55.0, 100.0)    # so they don't all get thirsty at once
 	agent.path_changed.connect(func() -> void:
@@ -504,6 +511,8 @@ func _physics_process(delta: float) -> void:
 			_say_left -= Game.real_delta(delta)
 			_say.visible = _say_left > 0.0
 		return
+	if not boosts.is_empty():
+		_tick_boosts()
 	_drain_needs(delta)
 	_cool = maxf(0.0, _cool - delta)
 	# a guard asleep with raiders about gets up
@@ -728,13 +737,74 @@ func _is_guard() -> bool:
 
 
 ## Their weapon: one they've found or bought and taken in hand, or else the tool of their trade
-## (or fists). The elixir of strength adds to every blow.
+## (or fists). Its damage goes up or down with the ability it calls for (Strength, or Agility for
+## fists and daggers, Intelligence for magic), never below 1, and Agility quickens the blows. The
+## elixir of strength adds to every blow. Besides the weapon's own fields: base (its damage
+## before any of that), ab (the ability) and mod (what that adds).
 func weapon() -> Dictionary:
-	var w: Dictionary = Items.info(equip.hand) if equip.hand != "" else Gear.WEAPONS.get(def.tool, Gear.WEAPONS[""])
-	if Game.world_time < _might_until:
-		w = w.duplicate()
-		w.dmg = w.dmg + Vector2i(3, 3)
+	var k: String = equip.hand if equip.hand != "" else def.tool
+	var w: Dictionary = (Items.info(k) if equip.hand != "" else Gear.WEAPONS.get(k, Gear.WEAPONS[""])).duplicate()
+	w.base = w.dmg
+	w.ab = Abilities.weapon_ability(k)
+	w.mod = ability_mod(w.ab)
+	var add: int = w.mod + (int(Items.info("elixir").might) if Game.world_time < _might_until else 0)
+	w.dmg = Vector2i(maxi(1, w.dmg.x + add), maxi(1, w.dmg.y + add))
+	w.cd = float(w.cd) * Abilities.quickness(ability("agi"))
 	return w
+
+
+# ---------- abilities ----------
+
+## A score as it stands now (a potion's boost included).
+func ability(k: String) -> int:
+	return int(def.abilities()[k]) + boost_of(k)
+
+
+func ability_mod(k: String) -> int:
+	return Abilities.mod(ability(k))
+
+
+## What a potion is adding to an ability now (0 if none).
+func boost_of(k: String) -> int:
+	return int(boosts[k][0]) if boosts.has(k) and Game.world_time < boosts[k][1] else 0
+
+
+## Game seconds a boost has left.
+func boost_left(k: String) -> float:
+	return maxf(0.0, boosts[k][1] - Game.world_time) if boosts.has(k) else 0.0
+
+
+## Health when unhurt: their own, and 8 more (or less) for each point of Constitution modifier.
+func hp_max() -> float:
+	return def.hp_max + Abilities.HP_PER_CON * ability_mod("con")
+
+
+## Drink an ability potion: +amt to k for a while (another dose starts the time over).
+func boost(k: String, amt: int) -> void:
+	var was := hp_max()
+	boosts[k] = [amt, Game.world_time + Abilities.BOOST_FOR]
+	_health_follows(was)
+
+
+# potions wearing off
+func _tick_boosts() -> void:
+	for k in boosts.keys():
+		if Game.world_time >= boosts[k][1]:
+			var was := hp_max() if k == "con" else 0.0
+			boosts.erase(k)
+			if k == "con":
+				_health_follows(was)
+			if controlled:
+				Events.town_event.emit("%s's %s potion has worn off." % [def.display_name, Abilities.NAMES[k]])
+			bagged.emit()
+
+
+# Constitution moved their maximum health: the extra comes (and goes) with it, never down to 0
+func _health_follows(was: float) -> void:
+	var now := hp_max()
+	if now > was:
+		hp += now - was
+	hp = clampf(hp, 1.0, now)
 
 
 ## What takes blows off: the ring of protection.
@@ -828,13 +898,19 @@ func use_item(k: String) -> String:
 			return "%s wields the %s." % [n, low]
 		"potion":
 			if it.has("heal"):
-				if hp >= def.hp_max - 0.5:
+				if hp >= hp_max() - 0.5:
 					return "%s is already at full health." % n
-				var gain := minf(float(it.heal), def.hp_max - hp)
+				var gain := minf(float(it.heal), hp_max() - hp)
 				hp += gain
 				take_item(k)
 				FloatText.pop(get_parent(), global_position + Vector3.UP * 2.1, "+%d" % int(gain), Color(0.5, 1.0, 0.55))
 				return "%s drinks the %s (+%d health)." % [n, low, int(gain)]
+			if it.has("ab"):
+				var again := boost_of(it.ab) > 0
+				boost(it.ab, int(it.amt))
+				take_item(k)
+				return "%s drinks the %s: +%d %s for six hours%s." % [n, low, int(it.amt), Abilities.NAMES[it.ab],
+					" (the old dose starts over)" if again else ""]
 			_might_until = Game.world_time + Items.MIGHT_FOR
 			take_item(k)
 			return "%s drinks the elixir: +3 damage for four hours." % n
@@ -874,9 +950,14 @@ func shop_a_little() -> void:
 		say_later("A minor healing potion, please. Just in case.", 1.6)
 
 
-## Struck (by a goblin): lose health; at none, they die.
+## Struck (by a goblin): lose health; at none, they die. Agility gives a chance to dodge it.
 func hurt(dmg: int, by: Node3D) -> void:
 	if dead:
+		return
+	if randf() < Abilities.dodge(ability("agi")):
+		_attacker = by
+		_hurt_at = Game.world_time
+		FloatText.pop(get_parent(), global_position + Vector3.UP * 2.1, "dodged", Color(0.75, 0.85, 1.0))
 		return
 	dmg = maxi(1, dmg - armour())
 	hp = maxf(0.0, hp - dmg)
@@ -981,7 +1062,7 @@ func _combat_step(_delta: float) -> bool:
 		foe = _nearest_raider(_guard_range())
 	else:
 		# hit back at whoever's hitting them (or squares up to them)
-		var near := _nearest_raider(4.0)
+		var near := _nearest_raider(maxf(2.0, 4.0 + ability_mod("wis")))
 		if near and near.target == self:
 			foe = near
 		elif _attacker is Monster and not (_attacker as Monster).dead and Game.world_time - _hurt_at < 4.0 \
@@ -998,9 +1079,9 @@ func _combat_step(_delta: float) -> bool:
 			_goal = null
 			_timer = 1.0
 		return false
-	if hp < def.hp_max * 0.35 and _drink_heal():
+	if hp < hp_max() * 0.35 and _drink_heal():
 		return true
-	if not _is_guard() and hp < def.hp_max * 0.35:
+	if not _is_guard() and hp < hp_max() * 0.35:
 		# badly hurt: run for home
 		var b := _nearest_free_bed()
 		if b:
@@ -1029,8 +1110,9 @@ func _combat_step(_delta: float) -> bool:
 	return true
 
 
+# Wisdom: a metre further (or nearer) per point
 func _guard_range() -> float:
-	return ALARM_RANGE if AlarmBell.alarm(get_tree()) else GUARD_RANGE
+	return (ALARM_RANGE if AlarmBell.alarm(get_tree()) else GUARD_RANGE) + ability_mod("wis")
 
 
 func _indoors() -> bool:
@@ -1049,7 +1131,7 @@ func _bell_duty() -> bool:
 		_to_bell = false
 		return false
 	if not _to_bell:
-		var seen := _nearest_raider(BELL_SPOT)
+		var seen := _nearest_raider(BELL_SPOT + ability_mod("wis"))
 		if seen == null or _another_guard_running():
 			return false
 		_to_bell = true
@@ -1123,10 +1205,11 @@ func cheer(points: float) -> void:
 
 
 func _drain_needs(delta: float) -> void:
-	# health comes back slowly out of danger, and quickly in bed
-	if hp < def.hp_max:
+	# health comes back slowly out of danger, and quickly in bed (faster still with Wisdom)
+	var top := hp_max()
+	if hp < top:
 		var rate := 3.0 if (_lying and _lie >= 1.0) else (0.4 if Game.world_time - _hurt_at > 12.0 else 0.0)
-		hp = minf(def.hp_max, hp + rate * delta)
+		hp = minf(top, hp + rate * Abilities.mending(ability("wis")) * delta)
 	if _lying and _lie >= 1.0:
 		needs.fatigue = minf(100.0, needs.fatigue + REST * delta)
 	else:

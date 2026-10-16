@@ -10,7 +10,11 @@ extends RefCounted
 ## Using things (from the inventory, I): a weapon is wielded in place of the tool of their trade
 ## (and put away again); a healing potion restores health; the elixir of strength adds 3 to
 ## every blow for a while; the ring of protection takes 2 off every blow that lands; the cloak of
-## shadows makes goblins see the wearer only from half as far. Gems are for selling.
+## shadows makes goblins see the wearer only from half as far. An ability potion adds 4 to one of
+## the six abilities for six hours (see Abilities). Gems are for selling.
+##
+## Charisma shifts Tilda's prices: 5% off what you buy and 5% more for what you sell per point of
+## modifier, at most 25% either way (and worse, for the uncharming).
 
 const ALL := {
 	# gems
@@ -39,6 +43,12 @@ const ALL := {
 	"healgreater": {"name": "Greater potion of healing", "type": "potion", "value": 120, "heal": 80.0},
 	"healsuperior": {"name": "Superior potion of healing", "type": "potion", "value": 250, "heal": 9999.0},
 	"elixir": {"name": "Elixir of strength", "type": "potion", "value": 90, "might": 3},
+	"potstr": {"name": "Potion of bull's strength", "type": "potion", "value": 70, "ab": "str", "amt": 4},
+	"potagi": {"name": "Potion of cat's grace", "type": "potion", "value": 70, "ab": "agi", "amt": 4},
+	"potcon": {"name": "Potion of bear's endurance", "type": "potion", "value": 70, "ab": "con", "amt": 4},
+	"potint": {"name": "Potion of fox's cunning", "type": "potion", "value": 60, "ab": "int", "amt": 4},
+	"potwis": {"name": "Potion of owl's wisdom", "type": "potion", "value": 60, "ab": "wis", "amt": 4},
+	"potcha": {"name": "Potion of eagle's splendour", "type": "potion", "value": 50, "ab": "cha", "amt": 4},
 	# magic
 	"ringprot": {"name": "Ring of protection", "type": "magic", "value": 200, "slot": "ring", "armour": 2},
 	"cloak": {"name": "Cloak of shadows", "type": "magic", "value": 220, "slot": "back"},
@@ -51,7 +61,8 @@ const TYPE_COLOURS := {"gem": Color(0.5, 0.83, 1.0), "weapon": Color(0.94, 0.54,
 const MIGHT_FOR := 20.0            # game seconds the elixir of strength lasts (four hours)
 
 ## What Tilda keeps on her shelves (restocked each morning), and what's in her till (silver).
-const SHOP_BASE := {"healminor": 4, "healpot": 3, "healgreater": 1, "elixir": 1, "torch": 4, "rope": 2, "oil": 3,
+const SHOP_BASE := {"healminor": 4, "healpot": 3, "healgreater": 1, "elixir": 1, "potstr": 1, "potagi": 1, "potcon": 1,
+	"potwis": 1, "torch": 4, "rope": 2, "oil": 3,
 	"tinderbox": 2, "compass": 1, "lockpicks": 1, "dagger": 2, "shortsword": 1, "mace": 1}
 const SHOP_COIN := 3000
 
@@ -67,14 +78,19 @@ static func title(k: String) -> String:
 	return ALL[k].name if ALL.has(k) else k
 
 
-## Price at the store, in silver.
-static func buy_price(k: String) -> int:
-	return int(ALL[k].value) * 10
+## How much Charisma moves r's prices (a fraction: + is in their favour).
+static func price_edge(r: Resident) -> float:
+	return Abilities.price_edge(r.ability("cha")) if r else 0.0
 
 
-## What Tilda gives for one, in silver.
-static func sell_price(k: String) -> int:
-	return int(ALL[k].value) * 5
+## Price at the store, in silver (for r, if given: their Charisma counts).
+static func buy_price(k: String, r: Resident = null) -> int:
+	return maxi(1, roundi(int(ALL[k].value) * 10 * (1.0 - price_edge(r))))
+
+
+## What Tilda gives r for one, in silver.
+static func sell_price(k: String, r: Resident = null) -> int:
+	return maxi(1, floori(int(ALL[k].value) * 5 * (1.0 + price_edge(r))))
 
 
 ## "3 gold 4 silver"
@@ -95,6 +111,8 @@ static func describe(k: String) -> String:
 		"potion":
 			if it.has("heal"):
 				return "restores all health" if it.heal > 1000.0 else "restores %d health" % int(it.heal)
+			if it.has("ab"):
+				return "+%d %s for six hours" % [it.amt, Abilities.NAMES[it.ab]]
 			return "+%d damage for four hours" % it.might
 		"magic":
 			if k == "ringprot":
@@ -146,12 +164,13 @@ static func till() -> int:
 ## r buys one k from the store: false if it's sold out or they can't pay.
 static func buy(r: Resident, k: String) -> bool:
 	_ensure_shop()
-	if shop_stock.get(k, 0) <= 0 or not r.pay(buy_price(k)):
+	var p := buy_price(k, r)
+	if shop_stock.get(k, 0) <= 0 or not r.pay(p):
 		return false
 	shop_stock[k] -= 1
 	if shop_stock[k] <= 0:
 		shop_stock.erase(k)
-	shop_coin += buy_price(k)
+	shop_coin += p
 	r.give(k)
 	return true
 
@@ -159,7 +178,7 @@ static func buy(r: Resident, k: String) -> bool:
 ## r sells one k to the store (one they aren't wearing or wielding): false if Tilda can't pay.
 static func sell(r: Resident, k: String) -> bool:
 	_ensure_shop()
-	var p := sell_price(k)
+	var p := sell_price(k, r)
 	if r.spare(k) < 1 or shop_coin < p:
 		return false
 	r.take_item(k)

@@ -10,7 +10,7 @@ The Godot 4 version of [npc-world](https://github.com/tibitzu/npc-world): a shar
 
 The project uses the Compatibility renderer, so the same build works on desktop and in a web browser.
 
-## Where it's up to: milestone 13, health and danger
+## Where it's up to: milestone 17, character sheets
 
 **Milestone 1, the ground and camera**
 - The whole map: 1000 × 1000 hex tiles, 727 m × 630 m, coloured tile by tile in the HTML game's moss greens.
@@ -186,6 +186,35 @@ The project uses the Compatibility renderer, so the same build works on desktop 
 - The tower is `scenes/buildings/tower.tscn` (`data/buildings/tower.tres`); Orrin is `data/npcs/orrin.tres` (`hidden = true` makes a resident unknown until met); the bolt is `scripts/actors/light_bolt.gd`.
 - Fixed on the way: residents living far from town no longer walk all the way in to drop into the store.
 
+**Milestone 17, character sheets**
+- **Abilities**: everyone has the HTML game's six, on the 3–18 scale (10 is an ordinary person), set by their trade. Each score gives a modifier, (score − 10) ÷ 2 rounded down:
+
+  | Resident | Trade | STR | AGI | CON | INT | WIS | CHA |
+  |---|---|---|---|---|---|---|---|
+  | Mira | Gardener | 10 | 11 | 12 | 11 | 14 | 13 |
+  | Bolt | Courier | 11 | 16 | 13 | 10 | 10 | 12 |
+  | Old Fen | Lamplighter | 8 | 9 | 9 | 15 | 16 | 11 |
+  | Brann | Lumberjack | 16 | 11 | 15 | 9 | 11 | 10 |
+  | Dax and Dex | Guard | 15 | 12 | 14 | 10 | 11 | 11 |
+  | Tilda | Shopkeeper | 9 | 10 | 11 | 14 | 12 | 16 |
+  | Orrin | Wizard | 8 | 10 | 10 | 17 | 15 | 12 |
+
+- **What they do**:
+
+  | Ability | Effect (per point of modifier) |
+  |---|---|
+  | Strength | +1 damage with weapons swung by hand (every blow does at least 1) |
+  | Agility | +1 damage with fists and daggers; blows come 5% quicker (at most 40% quicker, 30% slower) and 4% chance to dodge a blow (at most 25%) |
+  | Constitution | +8 health (Brann 136, the twins 156, Old Fen 62...) |
+  | Intelligence | +1 damage with magic (Orrin's bolts of light: 8–12) |
+  | Wisdom | Trouble spotted 1 m further off (the guards turning out, the guard on watch spotting a raid, anyone stepping in), and health mends 25% faster |
+  | Charisma | Tilda's prices 5% better, buying and selling (at most 25%); the shop says how much |
+
+- **The goblins** have them too (8, 14, 10, 9, 8, 7; their chief 12, 14, 13, 11, 9, 12): their clubs hit a little softer (2–5), but they're quick and dodge now and then; the chief has 98 health and hits for 6–10.
+- **The character sheet (C)**, or right-click a resident's card: a large sheet for anyone the town knows, picked from the list down its side (Left and Right for the next). It shows what they're doing and where (in which building, on the square, or how far from it), their hours, health (and what Constitution adds), their weapon (damage, where the bonus comes from, how often, reach), defence (dodge, how fast they mend, ring and cloak), the six abilities (score, modifier and what it does for them), their needs, and what they carry. Take control or let go from its corner. While it's open, nobody moves; C or Esc closes it. Each card's tooltip lists their scores too.
+- **Ability potions**: six of them, +4 to one ability for six hours (another dose starts the time over rather than adding). Tilda stocks bull's strength (Strength), cat's grace (Agility), bear's endurance (Constitution) and owl's wisdom (Wisdom); fox's cunning (Intelligence) and eagle's splendour (Charisma) turn up in the lair's chests. Bear's endurance raises health with its maximum, and when it wears off health comes down with it (never to nothing). The sheet and the inventory show what's working and how long it has left.
+- The abilities are `scripts/actors/abilities.gd` (the rules, and the goblins' scores); each resident's scores are in their `.tres` (`profession`, `strength`… `charisma`); the sheet is `scripts/ui/character_sheet.gd`.
+
 ### Coordinates
 
 A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is east) and **z** (metres, + is south), measured from the middle of the map at the tavern's end of the square, and the tile and what it is. Those x and z are the numbers buildings are placed with (`position` in each `data/buildings/*.tres`).
@@ -201,6 +230,7 @@ A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is eas
 | Zoom | Scroll wheel (pinch on a trackpad) |
 | Glide to a spot | Click the ground |
 | Take control of a resident | Click them, or their card |
+| Character sheet | C, or right-click a card (Left and Right for the next resident) |
 | Hex tiles on/off | V |
 | Show routes | P |
 | Game speed slower / faster | [ and ] |
@@ -220,6 +250,7 @@ A tooltip by the mouse cursor shows the ground under it: **x** (metres, + is eas
 | Say something | Enter, type, Enter (Esc cancels) |
 | Strike (at a goblin in front) | Space |
 | Inventory: coins, gear, things carried (click to use) | I |
+| Character sheet | C |
 | First / third person | Scroll, T, or the button |
 | Let go | Esc, the Let go button, or click their card |
 
@@ -269,6 +300,6 @@ A building with a garden or yard sets `nav_area` on its root to the whole area i
 godot --path . res://tools/screenshot.tscn -- out.png [frames] [yaw pitch dist x z] [hex] [hour=H]
 ```
 
-## Next: milestone 17
+## Next: milestone 18
 
-Character sheets, as in the HTML game: each resident gets the six abilities (Strength, Agility, Constitution, Intelligence, Wisdom, Charisma), shown on a sheet with their gear and health. The abilities shape how hard they hit, how much health they have, how far they see trouble coming and what Tilda charges them, and her ability potions boost one for a while.
+Equipment, as in the HTML game: the ten slots (head, arms, torso, legs, feet, main hand, off hand, ring, neck, back), with each resident's tools and clothes as real items they can take off, swap, sell or find; armour that takes blows off; and the hotbar of eight slots for the resident you're playing.

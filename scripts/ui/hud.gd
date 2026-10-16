@@ -4,6 +4,7 @@ extends CanvasLayer
 ## control or let go), the controls hint, and while controlling, the view switch, Let go, and a
 ## warning before the resident takes themselves back. Bottom left, the town chatter: what residents
 ## near where you're looking have just said. While controlling, Enter opens a box to say something.
+## C (or right-clicking a card) opens the character sheet.
 
 @onready var _title: Label = $Title
 @onready var _coords: Label = $Coords
@@ -36,6 +37,7 @@ var _pack_slots := {}          # "logs"/"parcels" -> Array of ColorRect
 var _pack_of: Resident = null
 var _inv: InventoryPanel
 var _shop: ShopPanel
+var _sheet: CharacterSheet
 
 const CHATTER_LINES := 6
 const CHATTER_FADE := 45.0     # real seconds a line stays in the chatter log
@@ -62,8 +64,12 @@ func _ready() -> void:
 	add_child(_inv)
 	_shop = ShopPanel.new()
 	add_child(_shop)
+	_sheet = CharacterSheet.new()
+	_sheet.player = _player
+	add_child(_sheet)
 	Events.shop_requested.connect(func(r: Node) -> void:
 		_inv.close()
+		_sheet.close()
 		_shop.open(r as Resident))
 	Game.speed_changed.connect(func(_s: int) -> void: _refresh_speed())
 	_idle.offset_top = 62.0
@@ -235,6 +241,14 @@ func _build_roster() -> void:
 				_player.let_go()
 			else:
 				_player.possess(res))
+		# right-click: their character sheet
+		b.gui_input.connect(func(e: InputEvent) -> void:
+			if e is InputEventMouseButton and (e as InputEventMouseButton).pressed \
+					and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
+				_inv.close()
+				_shop.close()
+				_sheet.open(res)
+				b.accept_event())
 		# the needs bars along the bottom of the card
 		for st in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
 			var sb := b.get_theme_stylebox(st).duplicate() as StyleBox
@@ -272,9 +286,9 @@ func _refresh() -> void:
 	if _shop and _shop.visible and _shop.resident != ctrl:
 		_shop.close()
 	if ctrl:
-		_help.text = "You are %s. F does what's at hand · I inventory · Space strikes · Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
+		_help.text = "You are %s. F does what's at hand · I inventory · C character sheet · Space strikes · Enter to talk · W S walk (hold Left Shift to run) · A D step aside · Q E or drag to look · click a tile or floor to walk there · scroll or T switches view · P routes · Esc lets go" % ctrl.def.display_name
 	else:
-		_help.text = "Click a resident to take control · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · [ ] game speed · V tiles · P routes"
+		_help.text = "Click a resident to take control (right-click or C for their character sheet) · WASD / arrows move · Q E turn · drag to rotate · right-drag to pan · scroll to zoom · click to glide · [ ] game speed · V tiles · P routes"
 
 
 func _process(_delta: float) -> void:
@@ -288,6 +302,8 @@ func _process(_delta: float) -> void:
 			Game.clock_text(r.def.sleep_hour), Game.clock_text(r.def.wake_hour)]
 		if (_cards[res] as Button).text != t:
 			(_cards[res] as Button).text = t
+			(_cards[res] as Button).tooltip_text = "%s %s\nClick to take control, right-click for the character sheet (C)" % [
+				r.def.profession, "  ".join(Abilities.KEYS.map(func(k: String) -> String: return "%s %d" % [Abilities.SHORT[k], r.ability(k)]))]
 		(_cards[res] as Button).modulate.a = 0.5 if r.dead else 1.0
 		(_cards[res] as Button).visible = r.known       # the wizard only once he's been met
 	var ctrl := _player.controlled
@@ -527,16 +543,26 @@ func _unhandled_input(event: InputEvent) -> void:
 			_inv.close()
 		else:
 			_shop.close()
+			_sheet.close()
 			_inv.open(_player.controlled)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("character_sheet") and not Game.typing:
+		if _sheet.visible:
+			_sheet.close()
+		else:
+			_inv.close()
+			_shop.close()
+			_sheet.open(_player.controlled)
 		get_viewport().set_input_as_handled()
 
 
-# Esc closes the inventory or the shop first (before it lets go of the resident)
+# Esc closes the inventory, the shop or the character sheet first (before it lets go of the resident)
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE \
-			and not Game.typing and (_inv.visible or _shop.visible):
+			and not Game.typing and (_inv.visible or _shop.visible or _sheet.visible):
 		_inv.close()
 		_shop.close()
+		_sheet.close()
 		get_viewport().set_input_as_handled()
 
 
